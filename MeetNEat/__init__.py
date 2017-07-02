@@ -25,4 +25,6 @@ def create_app(config_name):
     app.register_blueprint(api_blueprint)
     app.register_blueprint(admin_blueprint)
 
+    app.app_context().push()
+
     return app

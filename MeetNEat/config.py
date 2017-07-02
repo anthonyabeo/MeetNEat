@@ -4,6 +4,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'secret key'
+    CSRF_ENABLED = True
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
@@ -25,7 +26,8 @@ class StagingConfig(Config):
 
 
 class ProductionConfig(Config):
-    pass
+    DEBUG = False
+    TESTING = False
 
 
 config = {
