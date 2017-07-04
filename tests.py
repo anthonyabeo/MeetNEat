@@ -358,6 +358,111 @@ class ApiModelsTestCase(unittest.TestCase):
 class ApiTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.app = create_app('default')
+        self.client = self.app.test_client
+
+        self.request = {
+            'meal_type': 'dinner',
+            'location': 'Dzorwulu',
+            'longitude': 67.76,
+            'latitude': 45.86,
+            'meal_time': datetime.datetime.now().time(),
+            'user_id': 1
+        }
+
+        self.proposal = {
+            'user_proposed_to':"Sam",
+            'user_proposed_from': "Ruby",
+            'request_id': 1
+        }
+
+        self.meal_date = {
+            'user_1': 'Alice',
+            'user_2': 'Bob',
+            'restaurant_name': 'Kings Place',
+            'restaurant_address': '10 Kings Road, Accra',
+            'meal_time': datetime.datetime.now().time()
+        }
+
+        self.user = {
+            'username': "anthonyabeo",
+            'first_name': "Anthony",
+            'last_name': "Abeo",
+            'email': "anthonyabeo@gmail.com",
+            'password': "encrypted_password"
+        }
+
+        with self.app.app_context():
+            db.create_all()
+
+    # REQUESTS
+    def test_api_can_create_request(self):
+        pass
+
+    def test_api_can_get_all_requests(self):
+        pass
+
+    def test_api_can_get_a_request(self):
+        pass
+
+    def test_api_can_edit_a_request(self):
+        pass
+
+    def test_api_can_delete_a_request(self):
+        pass
+
+    # PROPOSALS
+    def test_api_can_create_proposal(self):
+        pass
+
+    def test_api_can_get_all_proposal(self):
+        pass
+
+    def test_api_can_get_a_proposal(self):
+        pass
+
+    def test_api_can_edit_a_proposal(self):
+        pass
+
+    def test_api_can_delete_a_proposal(self):
+        pass
+
+    # MEAL DATE
+    def test_api_can_create_meal_date(self):
+        pass
+
+    def test_api_can_get_all_meal_date(self):
+        pass
+
+    def test_api_can_get_a_meal_date(self):
+        pass
+
+    def test_api_can_edit_a_meal_date(self):
+        pass
+
+    def test_api_can_delete_a_meal_date(self):
+        pass
+
+    # USERS
+    def test_api_can_create_or_login_user_oauth(self):
+        pass
+
+    def test_api_can_logout_oauth_users(self):
+        pass
+
+    def test_api_can_create_user_regular(self):
+        pass
+
+    def test_api_can_get_all_users(self):
+        pass
+
+    def test_api_can_get_a_user(self):
+        pass
+
+    def test_api_can_edit_a_user(self):
+        pass
+
+    def test_api_can_delete_a_user(self):
         pass
 
     def tearDown(self):
