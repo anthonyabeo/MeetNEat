@@ -16,3 +16,7 @@
 * Create child images for NginX and PostgreSQL with the need configs
 * Create repositories on Docker cloud
 * Push application to Docker cloud/Hub
+
+## Implement caching, logging and monitering
+* using Redis for caching
+* find an open source tool for data logging and monitoring

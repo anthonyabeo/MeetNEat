@@ -107,8 +107,8 @@ class Proposal(db.Model):
     __tablename__ = 'proposals'
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
-    user_proposed_to = db.Column(db.String(128), nullable=False)
-    user_proposed_from = db.Column(db.String(128), nullable=False)
+    user_proposed_to = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
+    user_proposed_from = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
     filled = db.Column(db.Boolean, default=False)
     request_id = db.Column(db.Integer, db.ForeignKey('requests.id'))
 
@@ -130,8 +130,8 @@ class MealDate(db.Model):
     __tablename__ = 'meal_dates'
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
-    user_1 = db.Column(db.String(128), nullable=False)
-    user_2 = db.Column(db.String(128), nullable=False)
+    user_1 = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
+    user_2 = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
     restaurant_name = db.Column(db.String(128), nullable=False)
     restaurant_address = db.Column(db.String(128), nullable=False)
     restaurant_picture = db.Column(db.BLOB)
