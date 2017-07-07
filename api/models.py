@@ -14,10 +14,10 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
     username = db.Column(db.String(64), nullable=False, unique=True)
-    first_name = db.Column(db.String(64), nullable=False)
-    last_name = db.Column(db.String(64), nullable=False)
-    email = db.Column(db.String(64), nullable=False)
-    about_me = db.Column(db.String(1000), nullable=True)
+    first_name = db.Column(db.String(64))
+    last_name = db.Column(db.String(64))
+    email = db.Column(db.String(64), unique=True)
+    about_me = db.Column(db.String(1000))
     password = db.Column(db.String(64), nullable=False)
     password_hash = db.Column(db.String(128))
 

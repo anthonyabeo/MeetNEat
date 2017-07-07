@@ -387,9 +387,6 @@ class ApiTestCase(unittest.TestCase):
 
         self.user = {
             'username': "anthonyabeo",
-            'first_name': "Anthony",
-            'last_name': "Abeo",
-            'email': "anthonyabeo@gmail.com",
             'password': "encrypted_password"
         }
 
@@ -578,20 +575,67 @@ class ApiTestCase(unittest.TestCase):
     def test_api_can_logout_oauth_users(self):
         pass
 
-    def test_api_can_create_user_regular(self):
-        pass
+    def test_api_can_create_or_login_user_regular(self):
+        res = self.client().post('/api/v1/users/', data=self.user)
+        data = json.loads(res.data.decode())
+        self.assertEqual(data['status_code'], 201)
+        self.assertEqual(data['message'], "Successfully logged in")
+        self.assertIsNotNone(data['token'])
 
     def test_api_can_get_all_users(self):
-        pass
+        res = self.client().post('/api/v1/users/', data=self.user)
+        data = json.loads(res.data.decode())
+        self.assertEqual(data['status_code'], 201)
+        self.assertEqual(data['message'], "Successfully logged in")
+        self.assertIsNotNone(data['token'])
+
+        res = self.client().get('/api/v1/users/', data=data['token'])
+        data = json.loads(res.data.decode())
+        self.assertEqual(data['status_code'], 200)
+        self.assertIsInstance(data['users'], list)
+        self.assertEquals(len(data['users']), 1)
 
     def test_api_can_get_a_user(self):
-        pass
+        res = self.client().post('/api/v1/users/', data=self.user)
+        data = json.loads(res.data.decode())
+        self.assertEqual(data['status_code'], 201)
+        self.assertEqual(data['message'], "Successfully logged in")
+        self.assertIsNotNone(data['token'])
+
+        result = self.client().get(
+            '/api/v1/users/{}'.format(data['id']), data=data['token'])
+        self.assertEqual(result['status_code'], 200)
+        self.assertIn('anthonyabeo', str(result.data))
 
     def test_api_can_edit_a_user(self):
-        pass
+        res = self.client().post('/api/v1/users/', data=self.user)
+        data = json.loads(res.data.decode())
+        self.assertEqual(data['status_code'], 201)
+        self.assertEqual(data['message'], "Successfully logged in")
+        self.assertIsNotNone(data['token'])
+
+        rv = self.client().put(
+            '/api/v1/users/1/',
+            data={
+                "username": "shadowalker",
+                'token': data['token']
+            })
+        self.assertEqual(rv.status_code, 200)
+        results = self.client().get('/api/v1/users/1/')
+        self.assertIn('shadowalker', str(results.data))
 
     def test_api_can_delete_a_user(self):
-        pass
+        res = self.client().post('/api/v1/users/', data=self.user)
+        data = json.loads(res.data.decode())
+        self.assertEqual(data['status_code'], 201)
+        self.assertEqual(data['message'], "Successfully logged in")
+        self.assertIsNotNone(data['token'])
+
+        res = self.client().delete('/api/v1/users/1/')
+        self.assertEqual(res.status_code, 200)
+        # Test to see if it exists, should return a 404
+        result = self.client().get('/api/v1/users/1/')
+        self.assertEqual(result.status_code, 404)
 
     def tearDown(self):
         with self.app.app_context():
