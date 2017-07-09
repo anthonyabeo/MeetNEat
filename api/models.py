@@ -2,7 +2,7 @@ from datetime import datetime
 
 from flask import current_app
 from flask_login import UserMixin
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from MeetNEat import db, login_manager
@@ -18,27 +18,26 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(64))
     email = db.Column(db.String(64), unique=True)
     about_me = db.Column(db.String(1000))
-    password = db.Column(db.String(64), nullable=False)
     password_hash = db.Column(db.String(128))
 
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
-        return s.dumps({'confirm': self.id})
+        return s.dumps({'id': self.id})
 
-    def confirm(self, token):
+    @staticmethod
+    def confirm_auth_token(token):
+        print(token)
         s = Serializer(current_app.config['SECRET_KEY'])
 
         try:
             data = s.loads(token)
-        except:
-            return False
+        except SignatureExpired:
+            return None
+        except BadSignature:
+            return None
 
-        if data.get('confirm') != self.id:
-            return False
-
-        self.confirmed = True
-        db.session.add(self)
-        return True
+        user = User.query.get(data['id'])
+        return user
 
     @staticmethod
     @login_manager.user_loader
@@ -49,8 +48,7 @@ class User(UserMixin, db.Model):
     def password(self):
         raise AttributeError('password is not a readable attribute')
 
-    @password.setter
-    def password(self, password):
+    def hash_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def verify_password(self, password):
