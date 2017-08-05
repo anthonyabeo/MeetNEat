@@ -1,12 +1,7 @@
 # CHANGELOG
 
-## Version 2.0
-*
-*
-*
-
 ## Version 1.0
-*
-*
+* Basic user authentication using username and password
+* 
 *
 

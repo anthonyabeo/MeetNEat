@@ -1,6 +1,6 @@
 import json
 
-from flask import session, request
+from flask import session, request, jsonify
 from flask_restful import Api, Resource, reqparse, fields, marshal
 
 from api import api_blueprint
@@ -18,12 +18,25 @@ user_fields = {
 }
 
 
+@api_blueprint.route('/api/v1/users/logout/')
+def logout_user():
+    if session['username']:
+        session.clear()
+    return jsonify({'message': 'Successfully logged out', 'status_code': 200})
+
+
 class UserListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("username", type=str, help='Username is required', required=True)
-        self.parser.add_argument("password", type=str, help='password is required', required=True)
+        self.parser.add_argument("username", type=str,
+                                 help='Username is required',
+                                 required=True)
+
+        self.parser.add_argument("password",
+                                 type=str,
+                                 help='password is required',
+                                 required=True)
 
         super(UserListApi, self).__init__()
 

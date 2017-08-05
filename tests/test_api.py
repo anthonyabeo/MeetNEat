@@ -5,7 +5,6 @@ import unittest
 from MeetNEat import create_app, db
 from api.models import User, Request, Proposal, MealDate
 
-
 # class ApiModelsTestCase(unittest.TestCase):
 #     """This class tests the Models for API"""
 #
@@ -321,67 +320,67 @@ class ApiTestCase(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
 
-#     # REQUESTS
-#     def test_api_can_create_request(self):
-#         res = self.client().post('/api/v1/requests/', data=self.request)
-#         self.assertEqual(res.status_code, 201)
-#         self.assertIn('dinner', str(res.data))
-#
-#     def test_api_can_get_all_requests(self):
-#         res = self.client().post('/api/v1/requests/', data=self.request)
-#         self.assertEqual(res.status_code, 201)
-#         res = self.client().get('/api/v1/requests/')
-#         self.assertEqual(res.status_code, 200)
-#         self.assertIn('dinner', str(res.data))
-#
-#     def test_api_can_get_a_request(self):
-#         rv = self.client().post('/api/v1/requests/', data=self.request)
-#         self.assertEqual(rv.status_code, 201)
-#         result_in_json = json.loads(rv.data.decode('utf-8').replace("'", "\""))
-#         result = self.client().get(
-#             '/api/v1/requests/{}'.format(result_in_json['id']))
-#         self.assertEqual(result.status_code, 200)
-#         self.assertIn('dinner', str(result.data))
-#
-#     def test_api_can_edit_a_request(self):
-#         rv = self.client().post(
-#             '/api/v1/requests/',
-#             data={
-#                 'meal_type': 'dinner',
-#                 'location': 'Dzorwulu',
-#                 'longitude': 67.76,
-#                 'latitude': 45.86,
-#                 'meal_time': datetime.datetime.now().time(),
-#                 'user_id': 1
-#             })
-#         self.assertEqual(rv.status_code, 201)
-#         rv = self.client().put(
-#             '/api/v1/requests/1',
-#             data={
-#                 "meal_type": "Dessert:-)"
-#             })
-#         self.assertEqual(rv.status_code, 200)
-#         results = self.client().get('/api/v1/requests/1')
-#         self.assertIn('Dessert', str(results.data))
-#
-#     def test_api_can_delete_a_request(self):
-#         rv = self.client().post(
-#             '/api/v1/requests/',
-#             data={
-#                 'meal_type': 'dinner',
-#                 'location': 'Dzorwulu',
-#                 'longitude': 67.76,
-#                 'latitude': 45.86,
-#                 'meal_time': datetime.datetime.now().time(),
-#                 'user_id': 1
-#             })
-#         self.assertEqual(rv.status_code, 201)
-#         res = self.client().delete('/api/v1/requests/1')
-#         self.assertEqual(res.status_code, 200)
-#         # Test to see if it exists, should return a 404
-#         result = self.client().get('/api/v1/requests/1')
-#         self.assertEqual(result.status_code, 404)
-#
+    # REQUESTS
+    def test_api_can_create_request(self):
+        res = self.client().post('/api/v1/requests/', data=self.request)
+        self.assertEqual(res.status_code, 201)
+        self.assertIn('dinner', str(res.data))
+
+    def test_api_can_get_all_requests(self):
+        res = self.client().post('/api/v1/requests/', data=self.request)
+        self.assertEqual(res.status_code, 201)
+        res = self.client().get('/api/v1/requests/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('dinner', str(res.data))
+
+    def test_api_can_get_a_request(self):
+        rv = self.client().post('/api/v1/requests/', data=self.request)
+        self.assertEqual(rv.status_code, 201)
+        result_in_json = json.loads(rv.data.decode('utf-8').replace("'", "\""))
+        result = self.client().get(
+            '/api/v1/requests/{}'.format(result_in_json['id']))
+        self.assertEqual(result.status_code, 200)
+        self.assertIn('dinner', str(result.data))
+
+    def test_api_can_edit_a_request(self):
+        rv = self.client().post(
+            '/api/v1/requests/',
+            data={
+                'meal_type': 'dinner',
+                'location': 'Dzorwulu',
+                'longitude': 67.76,
+                'latitude': 45.86,
+                'meal_time': datetime.datetime.now().time(),
+                'user_id': 1
+            })
+        self.assertEqual(rv.status_code, 201)
+        rv = self.client().put(
+            '/api/v1/requests/1',
+            data={
+                "meal_type": "Dessert:-)"
+            })
+        self.assertEqual(rv.status_code, 200)
+        results = self.client().get('/api/v1/requests/1')
+        self.assertIn('Dessert', str(results.data))
+
+    def test_api_can_delete_a_request(self):
+        rv = self.client().post(
+            '/api/v1/requests/',
+            data={
+                'meal_type': 'dinner',
+                'location': 'Dzorwulu',
+                'longitude': 67.76,
+                'latitude': 45.86,
+                'meal_time': datetime.datetime.now().time(),
+                'user_id': 1
+            })
+        self.assertEqual(rv.status_code, 201)
+        res = self.client().delete('/api/v1/requests/1')
+        self.assertEqual(res.status_code, 200)
+        # Test to see if it exists, should return a 404
+        result = self.client().get('/api/v1/requests/1')
+        self.assertEqual(result.status_code, 404)
+
 #     # PROPOSALS
 #     def test_api_can_create_proposal(self):
 #         res = self.client().post('/api/v1/proposals/', data=self.proposal)
@@ -496,13 +495,7 @@ class ApiTestCase(unittest.TestCase):
 #         result = self.client().get('/api/v1/dates/1')
 #         self.assertEqual(result.status_code, 404)
 #
-#     # USERS
-#     def test_api_can_create_or_login_user_oauth(self):
-#         pass
-#
-#     def test_api_can_logout_oauth_users(self):
-#         pass
-#
+
     def test_api_can_create_or_login_user_regular(self):
         res = self.client().post('/api/v1/users/', data=self.user)
         data = json.loads(res.data.decode())
@@ -529,9 +522,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(data['message'], "Login successful")
         self.assertIsNotNone(data['token'])
 
-        d = {
-            'token': data['token']
-        }
+        d = {'token': data['token']}
 
         res = self.client().get('/api/v1/users/', data=json.dumps(d))
         data = json.loads(res.data.decode())

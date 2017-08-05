@@ -1,24 +1,21 @@
 from datetime import datetime
 
 from flask import current_app
-from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
+from mongoengine import connect, Document, StringField, FloatField, EmailField, DateTimeField, BooleanField, \
+                        ReferenceField, ImageField
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from MeetNEat import db, login_manager
+connect('meetneat', host='localhost', port=27017)
 
 
-class User(UserMixin, db.Model):
-
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
-    username = db.Column(db.String(64), nullable=False, unique=True)
-    first_name = db.Column(db.String(64))
-    last_name = db.Column(db.String(64))
-    email = db.Column(db.String(64), unique=True)
-    about_me = db.Column(db.String(1000))
-    password_hash = db.Column(db.String(128))
+class User(Document):
+    username = StringField(max_lenght=64, required=True, unique=True)
+    first_name = StringField(max_length=64)
+    last_name = StringField(max_length=64)
+    email = EmailField(required=True, unique=True)
+    about_me = StringField(max_length=1000)
+    password_hash = StringField(max_length=64)
 
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
@@ -39,11 +36,6 @@ class User(UserMixin, db.Model):
         user = User.query.get(data['id'])
         return user
 
-    @staticmethod
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
-
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')
@@ -54,96 +46,33 @@ class User(UserMixin, db.Model):
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
-
-    @staticmethod
-    def get_all():
-        return User.query.all()
-
-    @staticmethod
-    def delete(item):
-        db.session.delete(item)
-        db.session.commit()
-
     def __str__(self):
         return self.username
 
 
-class Request(db.Model):
-
-    __tablename__ = 'requests'
-
-    id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
-    meal_type = db.Column(db.String(64), nullable=False)
-    location = db.Column(db.String(64), nullable=False)
-    longitude = db.Column(db.Float, nullable=False)
-    latitude = db.Column(db.Float, nullable=False)
-    meal_time = db.Column(db.Time)
-    filled = db.Column(db.Boolean, default=False)
-    created = db.Column(db.DateTime(), index=True, default=datetime.utcnow)
-    updated = db.Column(db.DateTime(), index=True, default=datetime.utcnow, onupdate=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
-
-    @staticmethod
-    def get_all():
-        return Request.query.all()
-
-    @staticmethod
-    def delete(item):
-        db.session.delete(item)
-        db.session.commit()
+class Request(Document):
+    meal_type = StringField(max_length=64, required=True)
+    location_string = StringField(max_length=64)
+    longitude = FloatField(min_value=0.00)
+    latitude = FloatField(min_value=0.00)
+    meal_time = StringField()
+    created = DateTimeField(default=datetime.now())
+    modified = DateTimeField(default=datetime.now())
+    filled = BooleanField(default=False)
+    user = ReferenceField(User)
 
 
-class Proposal(db.Model):
-
-    __tablename__ = 'proposals'
-
-    id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
-    user_proposed_to = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
-    user_proposed_from = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
-    filled = db.Column(db.Boolean, default=False)
-    request_id = db.Column(db.Integer, db.ForeignKey('requests.id'))
-
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
-
-    @staticmethod
-    def get_all():
-        return Proposal.query.all()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
+class Proposal(Document):
+    user_proposed_to = ReferenceField(User)
+    user_proposed_from = ReferenceField(User)
+    filled = BooleanField(default=False)
+    request = ReferenceField(Request)
 
 
-class MealDate(db.Model):
-
-    __tablename__ = 'meal_dates'
-
-    id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
-    user_1 = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
-    user_2 = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True)
-    restaurant_name = db.Column(db.String(128), nullable=False)
-    restaurant_address = db.Column(db.String(128), nullable=False)
-    restaurant_picture = db.Column(db.BLOB)
-    meal_time = db.Column(db.Time)
-
-    def save(self):
-        db.session.add(self)
-        db.session.commit()
-
-    @staticmethod
-    def get_all():
-        return MealDate.query.all()
-
-    def delete(self):
-        db.session.delete(self)
-        db.session.commit()
-
+class MealDate(Document):
+    user_1 = ReferenceField(User)
+    user_2 = ReferenceField(User)
+    restaurant_name = StringField(max_length=64)
+    restaurant_address = StringField(max_length=64)
+    restaurant_picture = ImageField()
+    meal_time = DateTimeField()
