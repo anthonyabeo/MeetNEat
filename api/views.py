@@ -10,6 +10,7 @@ from api.utils import verify_credentials
 api = Api(api_blueprint)
 
 user_fields = {
+    'id': fields.String,
     'username': fields.String,
     'first_name': fields.String,
     'last_name': fields.String,
@@ -18,6 +19,7 @@ user_fields = {
 }
 
 request_fields = {
+    'id': fields.String,
     'meal_type': fields.String,
     'location_string': fields.String,
     'longitude': fields.Float,
@@ -181,19 +183,20 @@ class UserApi(Resource):
                 if str(user.id) == user_id:
                     user.delete()
 
-                    response = {
+                    return {
                         'status_code': 200,
-                        'message': 'user deleted successfully'}
-
-                    return response
+                        'message': 'user deleted successfully'
+                    }
             else:
                 return {
                     'status_code': 404,
-                    'error': 'Invalid credentials!!!'}
+                    'error': 'Invalid credentials!!!'
+                }
         else:
             return {
                 'status_code': 400,
-                'message': 'You need to login'}
+                'message': 'You need to login'
+            }
 
 
 api.add_resource(UserListApi, '/api/v1/users', endpoint='users')
@@ -237,7 +240,6 @@ class RequestListApi(Resource):
 
     def get(self):
         token = request.args.get('token')
-
         if token:
             user = User.confirm_auth_token(token)
             if user:
@@ -282,17 +284,51 @@ class RequestListApi(Resource):
 
 class RequestApi(Resource):
 
-    def get(self, id):
+    def get(self, r_id):
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                req = Request.objects.get(id=r_id)
+                return {
+                    'status_code': 200,
+                    'requests': marshal(req, request_fields)
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
+
+    def put(self, r_id):
         pass
 
-    def put(self, id):
-        pass
+    def delete(self, r_id):
 
-    def delete(self, id):
-        pass
+        token = request.args.get('token')
+
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                    r = Request.objects.get(id=r_id)
+                    r.delete()
+
+                    return {
+                        'status_code': 204,
+                        'message': 'Request deleted successfully'
+                    }
+            else:
+                return {
+                    'status_code': 401,
+                    'error': 'Invalid credentials!!!'
+                }
+        else:
+            return {
+                'status_code': 401,
+                'message': 'You need to login'
+            }
 
 api.add_resource(RequestListApi, '/api/v1/requests', endpoint='requests')
-api.add_resource(RequestApi, '/api/v1/requests/<int:id>', endpoint='request')
+api.add_resource(RequestApi, '/api/v1/requests/<string:r_id>', endpoint='request')
 
 
 class ProposalListApi(Resource):
