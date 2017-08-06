@@ -73,5 +73,5 @@ class MealDate(Document):
     user_2 = ReferenceField(User)
     restaurant_name = StringField(max_length=64)
     restaurant_address = StringField(max_length=64)
-    restaurant_picture = ImageField()
+    #restaurant_picture = ImageField()
     meal_time = DateTimeField()

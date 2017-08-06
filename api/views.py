@@ -5,7 +5,7 @@ from flask import session, request, jsonify
 from flask_restful import Api, Resource, reqparse, fields, marshal
 
 from api import api_blueprint
-from api.models import User, Request, Proposal
+from api.models import User, Request, Proposal, MealDate
 from api.utils import verify_credentials
 
 api = Api(api_blueprint)
@@ -38,6 +38,17 @@ proposal_fields = {
     'user_proposed_from': fields.Nested(user_fields),
     'filled': fields.Boolean,
     'request': fields.Nested(request_fields),
+}
+
+md_fields = {
+    'id': fields.String,
+    'user_1': fields.Nested(user_fields),
+    'user_2': fields.Nested(user_fields),
+    'restaurant_name': fields.String,
+    'restaurant_address': fields.String,
+    'restaurant_picture': fields.Raw,
+    'meal_time': fields.DateTime
+
 }
 
 
@@ -479,6 +490,7 @@ class ProposalListApi(Resource):
 
 
 class ProposalApi(Resource):
+
     def __init__(self):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument("user_proposed_to", type=str,
@@ -562,28 +574,168 @@ api.add_resource(ProposalApi, '/api/v1/proposals/<string:prop_id>', endpoint='pr
 
 class MealDateListApi(Resource):
 
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("user_1", type=str,
+                                 help='User 1 required',
+                                 required=True)
+
+        self.parser.add_argument("user_2",
+                                 type=str,
+                                 help='User 2 is required',
+                                 required=True)
+
+        self.parser.add_argument("restaurant_name",
+                                 type=str,
+                                 required=True)
+
+        self.parser.add_argument("restaurant_address",
+                                 type=str,
+                                 required=True)
+
+        self.parser.add_argument("restaurant_picture",
+                                 type=str)
+
+        self.parser.add_argument("meal_time",
+                                 type=str,
+                                 required=True)
+
+        super(MealDateListApi, self).__init__()
+
     def get(self):
-        pass
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                mealdates = MealDate.objects()
+                return {
+                    'status_code': 200,
+                    'mealdates': [marshal(md, md_fields) for md in mealdates]
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
     def post(self):
-        pass
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                args = self.parser.parse_args()
+                user_1 = args['user_1']
+                user_2 = args['user_2']
+                restaurant_name = args['restaurant_name']
+                restaurant_address = args['restaurant_address']
+                #restaurant_picture = args['restaurant_picture']
+                meal_time = args['meal_time']
+
+                if user_1 != user_2:
+                    md = MealDate(user_1=user_1,
+                                  user_2=user_2,
+                                  restaurant_name=restaurant_name,
+                                  restaurant_address=restaurant_address,
+                                  #restaurant_picture=restaurant_picture,
+                                  meal_time=meal_time)
+                    md.save()
+
+                    return {
+                        'status_code': 201,
+                        'message': 'Meal date placed successfully'
+                    }
+                else:
+                    return {'status_code': 406, 'message': 'Cannot meet with yourself'}
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
 
 class MealDateApi(Resource):
 
-    def get(self, id):
-        pass
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("user_1", type=str,
+                                 help='User 1 required',
+                                 required=True)
 
-    def put(self, id):
-        pass
+        self.parser.add_argument("user_2",
+                                 type=str,
+                                 help='User 2 is required',
+                                 required=True)
 
-    def delete(self, id):
-        pass
+        self.parser.add_argument("restaurant_name",
+                                 type=str,
+                                 required=True)
+
+        self.parser.add_argument("restaurant_address",
+                                 type=str,
+                                 required=True)
+
+        self.parser.add_argument("restaurant_picture",
+                                 type=str)
+
+        self.parser.add_argument("meal_time",
+                                 type=str,
+                                 required=True)
+
+        super(MealDateApi, self).__init__()
+
+    def get(self, date_id):
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                md = MealDate.objects.get(id=date_id)
+                return {
+                    'status_code': 200,
+                    'mealdates': marshal(md, md_fields)
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
+
+    def put(self, date_id):
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                args = self.parser.parse_args()
+
+                md = MealDate.objects.get(id=date_id)
+                md.user_1 = ObjectId(args['user_1'])
+                md.user_2 = ObjectId(args['user_2'])
+                md.restaurant_name = args['restaurant_name']
+                md.restaurant_address = args['restaurant_address']
+                md.meal_time = args['meal_time']
+
+                md.save()
+
+                return {
+                    'status_code': 200,
+                    'message': 'Meal date updated'
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
+
+    def delete(self, date_id):
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                MealDate.objects.get(id=date_id).delete()
+
+                return {
+                    'status_code': 204,
+                    'message': 'Meal date cancelled successfully'
+                }
+            else:
+                return {'status_code': 401, 'error': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
 api.add_resource(MealDateListApi, '/api/v1/mealdate', endpoint='mealdates')
-api.add_resource(MealDateApi, '/api/v1/mealdate/<string:id>', endpoint='mealdate')
-
-
-
-
-
+api.add_resource(MealDateApi, '/api/v1/mealdate/<string:date_id>', endpoint='mealdate')
