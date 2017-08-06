@@ -238,6 +238,9 @@ class RequestListApi(Resource):
         self.parser.add_argument("modified",
                                  type=object)
 
+        self.parser.add_argument("filled",
+                                 type=bool)
+
     def get(self):
         token = request.args.get('token')
         if token:
@@ -284,6 +287,41 @@ class RequestListApi(Resource):
 
 class RequestApi(Resource):
 
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("meal_type", type=str,
+                                 help='Meal Type is required',
+                                 required=True)
+
+        self.parser.add_argument("location_string",
+                                 type=str,
+                                 help='Location is required',
+                                 required=True)
+
+        self.parser.add_argument("longitude",
+                                 type=float)
+
+        self.parser.add_argument("latitude",
+                                 type=float)
+
+        self.parser.add_argument("meal_time",
+                                 type=str,
+                                 help='Meal time is required',
+                                 required=True)
+
+        self.parser.add_argument("user",
+                                 type=str,
+                                 help='user ID is required')
+
+        self.parser.add_argument("created",
+                                 type=object)
+
+        self.parser.add_argument("modified",
+                                 type=object)
+
+        self.parser.add_argument("filled",
+                                 type=bool)
+
     def get(self, r_id):
         token = request.args.get('token')
         if token:
@@ -300,7 +338,33 @@ class RequestApi(Resource):
             return {'status_code': 401, 'message': 'You need to login'}
 
     def put(self, r_id):
-        pass
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                args = self.parser.parse_args()
+
+                r = Request.objects.get(id=r_id)
+                r.meal_type = args['meal_type']
+                r.location_string = args['location_string']
+                r.meal_time = args['meal_time']
+                r.user = args['user']
+                r.filled = args['filled']
+                r.created = args['created']
+                r.modified = args['modified']
+                r.longitude = args['longitude']
+                r.latitude = args['latitude']
+
+                r.save()
+
+                return {
+                    'status_code': 200,
+                    'message': 'Request updated'
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
     def delete(self, r_id):
 
