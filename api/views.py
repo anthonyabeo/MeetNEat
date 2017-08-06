@@ -22,7 +22,7 @@ users_list = {
 }
 
 
-@api_blueprint.route('/api/v1/users/logout/')
+@api_blueprint.route('/api/v1/users/logout')
 def logout_user():
     if session['username']:
         session.clear()
@@ -188,8 +188,8 @@ class UserApi(Resource):
                 'message': 'You need to login'}
 
 
-api.add_resource(UserListApi, '/api/v1/users/', endpoint='users')
-api.add_resource(UserApi, '/api/v1/users/<string:user_id>/', endpoint='user')
+api.add_resource(UserListApi, '/api/v1/users', endpoint='users')
+api.add_resource(UserApi, '/api/v1/users/<string:user_id>', endpoint='user')
 
 
 class RequestListApi(Resource):
@@ -212,8 +212,8 @@ class RequestApi(Resource):
     def delete(self, id):
         pass
 
-api.add_resource(RequestListApi, '/api/v1/requests/', endpoint='requests')
-api.add_resource(RequestApi, '/api/v1/requests/<int:id>/', endpoint='request')
+api.add_resource(RequestListApi, '/api/v1/requests', endpoint='requests')
+api.add_resource(RequestApi, '/api/v1/requests/<int:id>', endpoint='request')
 
 
 class ProposalListApi(Resource):
@@ -236,8 +236,8 @@ class ProposalApi(Resource):
     def delete(self, id):
         pass
 
-api.add_resource(ProposalListApi, '/api/v1/proposals/', endpoint='proposals')
-api.add_resource(ProposalApi, '/api/v1/proposals/<int:id>/', endpoint='proposal')
+api.add_resource(ProposalListApi, '/api/v1/proposals', endpoint='proposals')
+api.add_resource(ProposalApi, '/api/v1/proposals/<int:id>', endpoint='proposal')
 
 
 class MealDateListApi(Resource):
@@ -260,8 +260,8 @@ class MealDateApi(Resource):
     def delete(self, id):
         pass
 
-api.add_resource(MealDateListApi, '/api/v1/mealdate/', endpoint='mealdates')
-api.add_resource(MealDateApi, '/api/v1/mealdate/<int:id>/', endpoint='mealdate')
+api.add_resource(MealDateListApi, '/api/v1/mealdate', endpoint='mealdates')
+api.add_resource(MealDateApi, '/api/v1/mealdate/<int:id>', endpoint='mealdate')
 
 
 
