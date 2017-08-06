@@ -17,6 +17,10 @@ user_fields = {
     'about_me': fields.String
 }
 
+users_list = {
+    'user': fields.List(fields.Nested(user_fields))
+}
+
 
 @api_blueprint.route('/api/v1/users/logout/')
 def logout_user():
@@ -46,11 +50,12 @@ class UserListApi(Resource):
         token = data['token']
 
         if token:
-            if verify_credentials(token, ""):
-                users = User.query.all()
+            user = User.confirm_auth_token(token)
+            if user:
+                users = User.objects()
                 return {
                     'status_code': 200,
-                    'users': marshal(users, user_fields)
+                    'users': [marshal(user, user_fields) for user in users]
                 }
             else:
                 return {'error': 'Invalid credentials!!!'}
@@ -62,7 +67,7 @@ class UserListApi(Resource):
         username = args['username']
         password = args['password']
 
-        user = User.query.filter_by(username=username).first()
+        user = User.objects(username=username).first()
 
         if user is None:
             user = User(username=username)
@@ -75,11 +80,10 @@ class UserListApi(Resource):
                 'message': "User created successfully"
             }
             return response
-
         else:
             if verify_credentials(username, password):
 
-                session['id'] = user.id
+                session['id'] = str(user.id)
                 session['username'] = user.username
                 session['first_name'] = user.first_name
                 session['last_name'] = user.last_name
@@ -106,12 +110,13 @@ class UserApi(Resource):
         token = data['token']
 
         if token:
-            if verify_credentials(token, ""):
-                user = User.query.get(user_id)
-                return {
-                    'status_code': 200,
-                    'user': marshal(user, user_fields)
-                }
+            user = User.confirm_auth_token(token)
+            if user:
+                if str(user.id) == user_id:
+                    return {
+                        'status_code': 200,
+                        'user': marshal(user, user_fields)
+                    }
             else:
                 return {
                     'status_code': 404,
@@ -130,22 +135,22 @@ class UserApi(Resource):
         new_user_info = data['new_user_info']
 
         if token:
-            if verify_credentials(token, ''):
-                user = User.query.get(user_id)
+            user = User.confirm_auth_token(token)
+            if user:
+                if str(user.id) == user_id:
+                    user.username = new_user_info['username']
+                    user.first_name = new_user_info['first_name']
+                    user.last_name = new_user_info['last_name']
+                    user.email = new_user_info['email']
+                    user.about_me = new_user_info['about_me']
 
-                user.username = new_user_info['username']
-                user.first_name = new_user_info['first_name']
-                user.last_name = new_user_info['last_name']
-                user.email = new_user_info['email']
-                user.about_me = new_user_info['about_me']
+                    user.save()
 
-                user.save()
-
-                response = {
-                    'status_code': 200,
-                    'message': 'Profile updated successfully'
-                }
-                return response
+                    response = {
+                        'status_code': 200,
+                        'message': 'Profile updated successfully'
+                    }
+                    return response
             else:
                 return {
                     'status_code': 404,
@@ -163,15 +168,16 @@ class UserApi(Resource):
         token = data['token']
 
         if token:
-            if verify_credentials(token, ''):
-                user = User.query.get(user_id)
-                User.delete(user)
+            user = User.confirm_auth_token(token)
+            if user:
+                if str(user.id) == user_id:
+                    user.delete()
 
-                response = {
-                    'status_code': 200,
-                    'message': 'user deleted successfully'}
+                    response = {
+                        'status_code': 200,
+                        'message': 'user deleted successfully'}
 
-                return response
+                    return response
             else:
                 return {
                     'status_code': 404,
@@ -183,7 +189,7 @@ class UserApi(Resource):
 
 
 api.add_resource(UserListApi, '/api/v1/users/', endpoint='users')
-api.add_resource(UserApi, '/api/v1/users/<int:user_id>/', endpoint='user')
+api.add_resource(UserApi, '/api/v1/users/<string:user_id>/', endpoint='user')
 
 
 class RequestListApi(Resource):

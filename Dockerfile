@@ -3,7 +3,7 @@
 FROM Ubuntu:14.04
 
 # The maintainer of the Docker image
-LABEL maintainer Anthony Abeo "anthonyabeo@gmail.com"
+LABEL maintainer = Anthony Abeo = "anthonyabeo@gmail.com"
 
 # Update the Ubuntu base image
 RUN apt-get update -y

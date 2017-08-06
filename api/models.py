@@ -10,20 +10,19 @@ connect('meetneat', host='localhost', port=27017)
 
 
 class User(Document):
-    username = StringField(max_lenght=64, required=True, unique=True)
+    username = StringField(required=True, max_lenght=64, unique=True)
     first_name = StringField(max_length=64)
     last_name = StringField(max_length=64)
-    email = EmailField(required=True, unique=True)
+    email = EmailField(unique=True, null=True)
     about_me = StringField(max_length=1000)
-    password_hash = StringField(max_length=64)
+    password_hash = StringField(max_length=100)
 
     def generate_confirmation_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
-        return s.dumps({'id': self.id})
+        return s.dumps({'id': str(self.id)})
 
     @staticmethod
     def confirm_auth_token(token):
-        print(token)
         s = Serializer(current_app.config['SECRET_KEY'])
 
         try:
@@ -33,7 +32,7 @@ class User(Document):
         except BadSignature:
             return None
 
-        user = User.query.get(data['id'])
+        user = User.objects.get(id=data['id'])
         return user
 
     @property

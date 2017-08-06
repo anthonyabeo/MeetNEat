@@ -27,9 +27,12 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = os.environ.get('DEBUG') or True
 
+
 class StagingConfig(Config):
     TESTING = True
-    MONGOALCHEMY_DATABASE = 'meetneat'
+    MONGODB_DB = 'meetneattest'
+    MONGODB_HOST = 'localhost'
+    MONGODB_PORT = 27017
 
 
 class ProductionConfig(Config):
