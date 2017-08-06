@@ -250,6 +250,8 @@ class RequestListApi(Resource):
         self.parser.add_argument("filled",
                                  type=bool)
 
+        super(RequestListApi, self).__init__()
+
     def get(self):
         token = request.args.get('token')
         if token:
@@ -328,6 +330,8 @@ class RequestApi(Resource):
 
         self.parser.add_argument("filled",
                                  type=bool)
+
+        super(RequestApi, self).__init__()
 
     def get(self, r_id):
         token = request.args.get('token')
@@ -423,6 +427,8 @@ class ProposalListApi(Resource):
                                  type=bool,
                                  required=True)
 
+        super(ProposalListApi, self).__init__()
+
     def get(self):
         token = request.args.get('token')
         if token:
@@ -473,6 +479,26 @@ class ProposalListApi(Resource):
 
 
 class ProposalApi(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("user_proposed_to", type=str,
+                                 help='Request host is required',
+                                 required=True)
+
+        self.parser.add_argument("user_proposed_from",
+                                 type=str,
+                                 help='Request guest is required',
+                                 required=True)
+
+        self.parser.add_argument("request",
+                                 type=str,
+                                 required=True)
+
+        self.parser.add_argument("filled",
+                                 type=bool,
+                                 required=True)
+
+        super(ProposalApi, self).__init__()
 
     def get(self, prop_id):
         token = request.args.get('token')
@@ -489,8 +515,29 @@ class ProposalApi(Resource):
         else:
             return {'status_code': 401, 'message': 'You need to login'}
 
-    def put(self, id):
-        pass
+    def put(self, prop_id):
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                args = self.parser.parse_args()
+
+                p = Proposal.objects.get(id=prop_id)
+                p.user_proposed_to = ObjectId(args['user_proposed_to'])
+                p.user_proposed_from = ObjectId(args['user_proposed_from'])
+                p.filled = args['filled']
+                p.req = ObjectId(args['request'])
+
+                p.save()
+
+                return {
+                    'status_code': 200,
+                    'message': 'Proposal updated'
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
     def delete(self, prop_id):
         token = request.args.get('token')
