@@ -4,7 +4,7 @@ from flask import session, request, jsonify
 from flask_restful import Api, Resource, reqparse, fields, marshal
 
 from api import api_blueprint
-from api.models import User
+from api.models import User, Request
 from api.utils import verify_credentials
 
 api = Api(api_blueprint)
@@ -17,8 +17,16 @@ user_fields = {
     'about_me': fields.String
 }
 
-users_list = {
-    'user': fields.List(fields.Nested(user_fields))
+request_fields = {
+    'meal_type': fields.String,
+    'location_string': fields.String,
+    'longitude': fields.Float,
+    'latitude': fields.Float,
+    'meal_time': fields.String,
+    'created': fields.DateTime,
+    'modified': fields.DateTime,
+    'filled': fields.Boolean,
+    'user': fields.Nested(user_fields)
 }
 
 
@@ -58,9 +66,9 @@ class UserListApi(Resource):
                     'users': [marshal(user, user_fields) for user in users]
                 }
             else:
-                return {'error': 'Invalid credentials!!!'}
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
-            return {'message': 'You need to login'}
+            return {'status_code': 401, 'message': 'You need to login'}
 
     def post(self):
         args = self.parser.parse_args()
@@ -194,11 +202,82 @@ api.add_resource(UserApi, '/api/v1/users/<string:user_id>', endpoint='user')
 
 class RequestListApi(Resource):
 
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("meal_type", type=str,
+                                 help='Meal Type is required',
+                                 required=True)
+
+        self.parser.add_argument("location_string",
+                                 type=str,
+                                 help='Location is required',
+                                 required=True)
+
+        self.parser.add_argument("longitude",
+                                 type=float)
+
+        self.parser.add_argument("latitude",
+                                 type=float)
+
+        self.parser.add_argument("meal_time",
+                                 type=str,
+                                 help='Meal time is required',
+                                 required=True)
+
+        self.parser.add_argument("user",
+                                 type=str,
+                                 help='user ID is required',
+                                 required=True)
+
+        self.parser.add_argument("created",
+                                 type=object)
+
+        self.parser.add_argument("modified",
+                                 type=object)
+
     def get(self):
-        pass
+        token = request.args.get('token')
+
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                requests = Request.objects()
+                return {
+                    'status_code': 200,
+                    'requests': [marshal(req, request_fields) for req in requests]
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
     def post(self):
-        pass
+        data = json.loads(request.get_data().decode('ascii'))
+        token = data['token']
+
+        if token:
+            user = User.confirm_auth_token(token)
+
+            if user:
+                args = self.parser.parse_args()
+                meal_type = args['meal_type']
+                location_string = args['location_string']
+                meal_time = args['meal_time']
+                user = args['user']
+
+                req = Request(meal_time=meal_time, meal_type=meal_type,
+                              location_string=location_string, user=user)
+
+                req.save()
+
+                return {
+                    'status_code': 201,
+                    'message': 'Request placed successfully'
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
 
 class RequestApi(Resource):

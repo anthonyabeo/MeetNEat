@@ -54,7 +54,7 @@ class Request(Document):
     location_string = StringField(max_length=64)
     longitude = FloatField(min_value=0.00)
     latitude = FloatField(min_value=0.00)
-    meal_time = StringField()
+    meal_time = StringField(max_length=64)
     created = DateTimeField(default=datetime.now())
     modified = DateTimeField(default=datetime.now())
     filled = BooleanField(default=False)
