@@ -15,5 +15,5 @@ def logout():
 
 @admin.route('/admin/dashboard/<int:admin_id>/')
 def index(admin_id):
-    return render_template('admin/index.html',
-                           admin_id=admin_id)
+    return render_template('admin/index.html', admin_id=admin_id)
+
