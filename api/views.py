@@ -1,10 +1,11 @@
 import json
 
+from bson import ObjectId
 from flask import session, request, jsonify
 from flask_restful import Api, Resource, reqparse, fields, marshal
 
 from api import api_blueprint
-from api.models import User, Request
+from api.models import User, Request, Proposal
 from api.utils import verify_credentials
 
 api = Api(api_blueprint)
@@ -29,6 +30,14 @@ request_fields = {
     'modified': fields.DateTime,
     'filled': fields.Boolean,
     'user': fields.Nested(user_fields)
+}
+
+proposal_fields = {
+    'id': fields.String,
+    'user_proposed_to': fields.Nested(user_fields),
+    'user_proposed_from': fields.Nested(user_fields),
+    'filled': fields.Boolean,
+    'request': fields.Nested(request_fields),
 }
 
 
@@ -257,12 +266,10 @@ class RequestListApi(Resource):
             return {'status_code': 401, 'message': 'You need to login'}
 
     def post(self):
-        data = json.loads(request.get_data().decode('ascii'))
-        token = data['token']
+        token = request.args.get('token')
 
         if token:
             user = User.confirm_auth_token(token)
-
             if user:
                 args = self.parser.parse_args()
                 meal_type = args['meal_type']
@@ -348,7 +355,7 @@ class RequestApi(Resource):
                 r.meal_type = args['meal_type']
                 r.location_string = args['location_string']
                 r.meal_time = args['meal_time']
-                r.user = args['user']
+                r.user = ObjectId(args['user'])
                 r.filled = args['filled']
                 r.created = args['created']
                 r.modified = args['modified']
@@ -397,26 +404,113 @@ api.add_resource(RequestApi, '/api/v1/requests/<string:r_id>', endpoint='request
 
 class ProposalListApi(Resource):
 
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("user_proposed_to", type=str,
+                                 help='Request host is required',
+                                 required=True)
+
+        self.parser.add_argument("user_proposed_from",
+                                 type=str,
+                                 help='Request guest is required',
+                                 required=True)
+
+        self.parser.add_argument("request",
+                                 type=str,
+                                 required=True)
+
+        self.parser.add_argument("filled",
+                                 type=bool,
+                                 required=True)
+
     def get(self):
-        pass
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                proposals = Proposal.objects()
+                return {
+                    'status_code': 200,
+                    'requests': [marshal(prop, proposal_fields) for prop in proposals]
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
     def post(self):
-        pass
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                args = self.parser.parse_args()
+                user_proposed_to = args['user_proposed_to']
+                user_proposed_from = args['user_proposed_from']
+                filled = args['filled']
+                req = args['request']
+
+                if user_proposed_to != user_proposed_from:
+                    prop = Proposal.objects.get(request=req)
+                    if not prop:
+                        proposal = Proposal(user_proposed_from=user_proposed_from,
+                                            user_proposed_to=user_proposed_to,
+                                            filled=filled,
+                                            request=req)
+                        proposal.save()
+
+                        return {
+                            'status_code': 201,
+                            'message': 'Proposal placed successfully'
+                        }
+                    else:
+                        return {'status_code': 406, 'message': 'Request is already occupied'}
+                else:
+                    return {'status_code': 406, 'message': 'Cannot meet with yourself'}
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
 
 class ProposalApi(Resource):
 
-    def get(self, id):
-        pass
+    def get(self, prop_id):
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                prop = Proposal.objects.get(id=prop_id)
+                return {
+                    'status_code': 200,
+                    'requests': marshal(prop, proposal_fields)
+                }
+            else:
+                return {'status_code': 401, 'message': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
 
     def put(self, id):
         pass
 
-    def delete(self, id):
-        pass
+    def delete(self, prop_id):
+        token = request.args.get('token')
+        if token:
+            user = User.confirm_auth_token(token)
+            if user:
+                Proposal.objects.get(id=prop_id).delete()
+
+                return {
+                    'status_code': 204,
+                    'message': 'Proposal deleted successfully'
+                }
+            else:
+                return {'status_code': 401, 'error': 'Invalid credentials!!!'}
+        else:
+            return {'status_code': 401, 'message': 'You need to login'}
+
 
 api.add_resource(ProposalListApi, '/api/v1/proposals', endpoint='proposals')
-api.add_resource(ProposalApi, '/api/v1/proposals/<int:id>', endpoint='proposal')
+api.add_resource(ProposalApi, '/api/v1/proposals/<string:prop_id>', endpoint='proposal')
 
 
 class MealDateListApi(Resource):
@@ -440,7 +534,7 @@ class MealDateApi(Resource):
         pass
 
 api.add_resource(MealDateListApi, '/api/v1/mealdate', endpoint='mealdates')
-api.add_resource(MealDateApi, '/api/v1/mealdate/<int:id>', endpoint='mealdate')
+api.add_resource(MealDateApi, '/api/v1/mealdate/<string:id>', endpoint='mealdate')
 
 
 
