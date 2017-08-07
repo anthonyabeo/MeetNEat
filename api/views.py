@@ -3,6 +3,7 @@ import json
 from bson import ObjectId
 from flask import session, request, jsonify
 from flask_restful import Api, Resource, reqparse, fields, marshal
+from mongoengine import Q
 
 from api import api_blueprint
 from api.models import User, Request, Proposal, MealDate
@@ -35,7 +36,7 @@ request_fields = {
 proposal_fields = {
     'id': fields.String,
     'user_proposed_to': fields.Nested(user_fields),
-    'user_proposed_from': fields.Nested(user_fields),
+    'proposal_guest': fields.Nested(user_fields),
     'filled': fields.Boolean,
     'request': fields.Nested(request_fields),
 }
@@ -72,6 +73,9 @@ class UserListApi(Resource):
                                  help='password is required',
                                  required=True)
 
+        self.parser.add_argument("email",
+                                 type=str)
+
         super(UserListApi, self).__init__()
 
     def get(self):
@@ -96,11 +100,12 @@ class UserListApi(Resource):
         args = self.parser.parse_args()
         username = args['username']
         password = args['password']
+        email = args['email']
 
         user = User.objects(username=username).first()
 
         if user is None:
-            user = User(username=username)
+            user = User(username=username, email=email)
             user.hash_password(password)
             user.save()
 
@@ -265,14 +270,25 @@ class RequestListApi(Resource):
 
     def get(self):
         token = request.args.get('token')
+        u = request.args.get('user')
+
         if token:
             user = User.confirm_auth_token(token)
             if user:
-                requests = Request.objects()
-                return {
-                    'status_code': 200,
-                    'requests': [marshal(req, request_fields) for req in requests]
-                }
+                if u == 'me':
+                    requests = Request.objects(user__ne=ObjectId(user.id))
+                    return {
+                        'status_code': 200,
+                        'requests': [marshal(req, request_fields) for req in requests]
+                    }
+                elif u == 'all':
+                    requests = Request.objects()
+                    return {
+                        'status_code': 200,
+                        'requests': [marshal(req, request_fields) for req in requests]
+                    }
+                else:
+                    return {'status_code': 401, 'message': 'Provide the USER parameter.'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -421,11 +437,11 @@ class ProposalListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("user_proposed_to", type=str,
+        self.parser.add_argument("proposal_host", type=str,
                                  help='Request host is required',
                                  required=True)
 
-        self.parser.add_argument("user_proposed_from",
+        self.parser.add_argument("proposal_guest",
                                  type=str,
                                  help='Request guest is required',
                                  required=True)
@@ -442,10 +458,12 @@ class ProposalListApi(Resource):
 
     def get(self):
         token = request.args.get('token')
+
         if token:
             user = User.confirm_auth_token(token)
             if user:
-                proposals = Proposal.objects()
+                proposals = Proposal.objects(Q(proposal_host=ObjectId(user.id))
+                                             | Q(proposal_guest=ObjectId(user.id)))
                 return {
                     'status_code': 200,
                     'requests': [marshal(prop, proposal_fields) for prop in proposals]
@@ -461,16 +479,16 @@ class ProposalListApi(Resource):
             user = User.confirm_auth_token(token)
             if user:
                 args = self.parser.parse_args()
-                user_proposed_to = args['user_proposed_to']
-                user_proposed_from = args['user_proposed_from']
+                proposal_host = args['proposal_host']
+                proposal_guest = args['proposal_guest']
                 filled = args['filled']
                 req = args['request']
 
-                if user_proposed_to != user_proposed_from:
-                    prop = Proposal.objects.get(request=req)
+                if proposal_host != proposal_guest:
+                    prop = Proposal.objects(request=req)
                     if not prop:
-                        proposal = Proposal(user_proposed_from=user_proposed_from,
-                                            user_proposed_to=user_proposed_to,
+                        proposal = Proposal(proposal_host=proposal_host,
+                                            proposal_guest=proposal_guest,
                                             filled=filled,
                                             request=req)
                         proposal.save()
@@ -493,11 +511,11 @@ class ProposalApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("user_proposed_to", type=str,
+        self.parser.add_argument("proposal_host", type=str,
                                  help='Request host is required',
                                  required=True)
 
-        self.parser.add_argument("user_proposed_from",
+        self.parser.add_argument("proposal_guest",
                                  type=str,
                                  help='Request guest is required',
                                  required=True)
@@ -520,7 +538,7 @@ class ProposalApi(Resource):
                 prop = Proposal.objects.get(id=prop_id)
                 return {
                     'status_code': 200,
-                    'requests': marshal(prop, proposal_fields)
+                    'proposals': marshal(prop, proposal_fields)
                 }
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
@@ -535,17 +553,21 @@ class ProposalApi(Resource):
                 args = self.parser.parse_args()
 
                 p = Proposal.objects.get(id=prop_id)
-                p.user_proposed_to = ObjectId(args['user_proposed_to'])
-                p.user_proposed_from = ObjectId(args['user_proposed_from'])
-                p.filled = args['filled']
-                p.req = ObjectId(args['request'])
 
-                p.save()
+                if p.proposal_host == user.id:
+                    p.proposal_host = ObjectId(args['proposal_host'])
+                    p.proposal_guest = ObjectId(args['proposal_guest'])
+                    p.filled = args['filled']
+                    p.req = ObjectId(args['request'])
 
-                return {
-                    'status_code': 200,
-                    'message': 'Proposal updated'
-                }
+                    p.save()
+
+                    return {
+                        'status_code': 200,
+                        'message': 'Proposal updated'
+                    }
+                else:
+                    return {'status_code': 401, 'message': 'You cannot edit this proposal. You are did not create it'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -556,12 +578,16 @@ class ProposalApi(Resource):
         if token:
             user = User.confirm_auth_token(token)
             if user:
-                Proposal.objects.get(id=prop_id).delete()
+                p = Proposal.objects.get(id=prop_id)
+                if p.proposal_host == user.id:
+                    p.delete()
 
-                return {
-                    'status_code': 204,
-                    'message': 'Proposal deleted successfully'
-                }
+                    return {
+                        'status_code': 204,
+                        'message': 'Proposal deleted successfully'
+                    }
+                else:
+                    return {'status_code': 401, 'message': 'cannot delete proposal. You did not create it.'}
             else:
                 return {'status_code': 401, 'error': 'Invalid credentials!!!'}
         else:
@@ -576,14 +602,10 @@ class MealDateListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("user_1", type=str,
-                                 help='User 1 required',
+        self.parser.add_argument("proposal", type=object,
+                                 help='Proposal required',
                                  required=True)
 
-        self.parser.add_argument("user_2",
-                                 type=str,
-                                 help='User 2 is required',
-                                 required=True)
 
         self.parser.add_argument("restaurant_name",
                                  type=str,
@@ -607,7 +629,8 @@ class MealDateListApi(Resource):
         if token:
             user = User.confirm_auth_token(token)
             if user:
-                mealdates = MealDate.objects()
+                mealdates = MealDate.objects(Q(user_1=ObjectId(user.id))
+                                             | Q(user_2=ObjectId(user.id)))
                 return {
                     'status_code': 200,
                     'mealdates': [marshal(md, md_fields) for md in mealdates]
@@ -619,20 +642,21 @@ class MealDateListApi(Resource):
 
     def post(self):
         token = request.args.get('token')
+        decision = request.args.get('decision')
+
         if token:
             user = User.confirm_auth_token(token)
             if user:
                 args = self.parser.parse_args()
-                user_1 = args['user_1']
-                user_2 = args['user_2']
+                proposal = args['proposal']
                 restaurant_name = args['restaurant_name']
                 restaurant_address = args['restaurant_address']
                 #restaurant_picture = args['restaurant_picture']
                 meal_time = args['meal_time']
 
-                if user_1 != user_2:
-                    md = MealDate(user_1=user_1,
-                                  user_2=user_2,
+                if decision:
+
+                    md = MealDate(proposal=proposal,
                                   restaurant_name=restaurant_name,
                                   restaurant_address=restaurant_address,
                                   #restaurant_picture=restaurant_picture,
@@ -644,7 +668,8 @@ class MealDateListApi(Resource):
                         'message': 'Meal date placed successfully'
                     }
                 else:
-                    return {'status_code': 406, 'message': 'Cannot meet with yourself'}
+                    Proposal.objects.get(id=proposal.id).delete()
+                    return {'status_code': 204, 'message': 'Date cancelled'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -704,18 +729,22 @@ class MealDateApi(Resource):
                 args = self.parser.parse_args()
 
                 md = MealDate.objects.get(id=date_id)
-                md.user_1 = ObjectId(args['user_1'])
-                md.user_2 = ObjectId(args['user_2'])
-                md.restaurant_name = args['restaurant_name']
-                md.restaurant_address = args['restaurant_address']
-                md.meal_time = args['meal_time']
 
-                md.save()
+                if user.id == md.user_1 or user.id == md.user_2:
+                    md.user_1 = ObjectId(args['user_1'])
+                    md.user_2 = ObjectId(args['user_2'])
+                    md.restaurant_name = args['restaurant_name']
+                    md.restaurant_address = args['restaurant_address']
+                    md.meal_time = args['meal_time']
 
-                return {
-                    'status_code': 200,
-                    'message': 'Meal date updated'
-                }
+                    md.save()
+
+                    return {
+                        'status_code': 200,
+                        'message': 'Meal date updated'
+                    }
+                else:
+                    return {'status_code': 401, 'message': 'You cannot modify this date info'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -726,12 +755,16 @@ class MealDateApi(Resource):
         if token:
             user = User.confirm_auth_token(token)
             if user:
-                MealDate.objects.get(id=date_id).delete()
+                md = MealDate.objects.get(id=date_id)
+                if user.id == md.user_1 or user.id == md.user_2:
+                    md.delete()
 
-                return {
-                    'status_code': 204,
-                    'message': 'Meal date cancelled successfully'
-                }
+                    return {
+                        'status_code': 204,
+                        'message': 'Meal date cancelled successfully'
+                    }
+                else:
+                    return {'status_code': 401, 'error': 'Cannot delete date info. You are not involved'}
             else:
                 return {'status_code': 401, 'error': 'Invalid credentials!!!'}
         else:

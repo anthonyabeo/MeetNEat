@@ -62,15 +62,14 @@ class Request(Document):
 
 
 class Proposal(Document):
-    user_proposed_to = ReferenceField(User)
-    user_proposed_from = ReferenceField(User)
+    proposal_host = ReferenceField(User)
+    proposal_guest = ReferenceField(User)
     filled = BooleanField(default=False)
     request = ReferenceField(Request)
 
 
 class MealDate(Document):
-    user_1 = ReferenceField(User)
-    user_2 = ReferenceField(User)
+    proposal = ReferenceField(Proposal)
     restaurant_name = StringField(max_length=64)
     restaurant_address = StringField(max_length=64)
     #restaurant_picture = ImageField()

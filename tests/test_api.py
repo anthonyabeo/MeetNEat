@@ -27,7 +27,7 @@ class ApiTestCase(unittest.TestCase):
 
         self.proposal = {
             'user_proposed_to': "Sam",
-            'user_proposed_from': "Ruby",
+            'proposal_guest': "Ruby",
             'request_id': 1
         }
 
@@ -250,7 +250,7 @@ class ApiTestCase(unittest.TestCase):
 #             '/api/v1/proposals/',
 #             data={
 #                 'user_proposed_to': "Sam",
-#                 'user_proposed_from': "Ruby",
+#                 'proposal_guest': "Ruby",
 #                 'request_id': 1
 #             })
 #         self.assertEqual(rv.status_code, 201)
@@ -268,7 +268,7 @@ class ApiTestCase(unittest.TestCase):
 #             '/api/v1/proposals/',
 #             data={
 #                 'user_proposed_to': "Sam",
-#                 'user_proposed_from': "Ruby",
+#                 'proposal_guest': "Ruby",
 #                 'request_id': 1
 #             })
 #         self.assertEqual(rv.status_code, 201)
