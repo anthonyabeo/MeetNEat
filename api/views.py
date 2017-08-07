@@ -24,8 +24,6 @@ request_fields = {
     'id': fields.String,
     'meal_type': fields.String,
     'location_string': fields.String,
-    'longitude': fields.Float,
-    'latitude': fields.Float,
     'meal_time': fields.String,
     'created': fields.DateTime,
     'modified': fields.DateTime,
@@ -35,7 +33,7 @@ request_fields = {
 
 proposal_fields = {
     'id': fields.String,
-    'user_proposed_to': fields.Nested(user_fields),
+    'proposal_host': fields.Nested(user_fields),
     'proposal_guest': fields.Nested(user_fields),
     'filled': fields.Boolean,
     'request': fields.Nested(request_fields),
@@ -45,6 +43,9 @@ md_fields = {
     'id': fields.String,
     'user_1': fields.Nested(user_fields),
     'user_2': fields.Nested(user_fields),
+    'proposal': fields.Nested(proposal_fields),
+    'longitude': fields.Float,
+    'latitude': fields.Float,
     'restaurant_name': fields.String,
     'restaurant_address': fields.String,
     'restaurant_picture': fields.Raw,
@@ -60,6 +61,7 @@ def logout_user():
     return jsonify({'message': 'Successfully logged out', 'status_code': 200})
 
 
+# USERS
 class UserListApi(Resource):
 
     def __init__(self):
@@ -148,20 +150,11 @@ class UserApi(Resource):
             user = User.confirm_auth_token(token)
             if user:
                 if str(user.id) == user_id:
-                    return {
-                        'status_code': 200,
-                        'user': marshal(user, user_fields)
-                    }
+                    return {'status_code': 200, 'user': marshal(user, user_fields)}
             else:
-                return {
-                    'status_code': 404,
-                    'error': 'Invalid credentials!!!'
-                }
+                return {'status_code': 404, 'error': 'Invalid credentials!!!'}
         else:
-            return {
-                'status_code': 400,
-                'message': 'You need to login'
-            }
+            return {'status_code': 400, 'message': 'You need to login'}
 
     def put(self, user_id):
 
@@ -228,6 +221,7 @@ api.add_resource(UserListApi, '/api/v1/users', endpoint='users')
 api.add_resource(UserApi, '/api/v1/users/<string:user_id>', endpoint='user')
 
 
+# REQUESTS
 class RequestListApi(Resource):
 
     def __init__(self):
@@ -386,7 +380,6 @@ class RequestApi(Resource):
                 r.meal_type = args['meal_type']
                 r.location_string = args['location_string']
                 r.meal_time = args['meal_time']
-                r.user = ObjectId(args['user'])
                 r.filled = args['filled']
                 r.created = args['created']
                 r.modified = args['modified']
@@ -433,13 +426,11 @@ api.add_resource(RequestListApi, '/api/v1/requests', endpoint='requests')
 api.add_resource(RequestApi, '/api/v1/requests/<string:r_id>', endpoint='request')
 
 
+# PROPOSALS
 class ProposalListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("proposal_host", type=str,
-                                 help='Request host is required',
-                                 required=True)
 
         self.parser.add_argument("proposal_guest",
                                  type=str,
@@ -458,7 +449,6 @@ class ProposalListApi(Resource):
 
     def get(self):
         token = request.args.get('token')
-
         if token:
             user = User.confirm_auth_token(token)
             if user:
@@ -479,28 +469,29 @@ class ProposalListApi(Resource):
             user = User.confirm_auth_token(token)
             if user:
                 args = self.parser.parse_args()
-                proposal_host = args['proposal_host']
                 proposal_guest = args['proposal_guest']
                 filled = args['filled']
                 req = args['request']
 
-                if proposal_host != proposal_guest:
-                    prop = Proposal.objects(request=req)
-                    if not prop:
-                        proposal = Proposal(proposal_host=proposal_host,
-                                            proposal_guest=proposal_guest,
-                                            filled=filled,
-                                            request=req)
-                        proposal.save()
+                m_request = Request.objects.get(id=req)
+                if m_request:
+                    proposal_host = str(m_request.user.id)
+                    if proposal_host != proposal_guest:
+                        prop = Proposal.objects(request=req)
+                        if not prop:
+                            proposal = Proposal(proposal_host=proposal_host,
+                                                proposal_guest=proposal_guest,
+                                                filled=filled,
+                                                request=req)
+                            proposal.save()
 
-                        return {
-                            'status_code': 201,
-                            'message': 'Proposal placed successfully'
-                        }
+                            return {'status_code': 201, 'message': 'Proposal placed successfully'}
+                        else:
+                            return {'status_code': 406, 'message': 'Request is already occupied'}
                     else:
-                        return {'status_code': 406, 'message': 'Request is already occupied'}
+                        return {'status_code': 406, 'message': 'Cannot meet with yourself'}
                 else:
-                    return {'status_code': 406, 'message': 'Cannot meet with yourself'}
+                    return {'status_code': 406, 'message': 'Request no longer open'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -536,10 +527,13 @@ class ProposalApi(Resource):
             user = User.confirm_auth_token(token)
             if user:
                 prop = Proposal.objects.get(id=prop_id)
-                return {
-                    'status_code': 200,
-                    'proposals': marshal(prop, proposal_fields)
-                }
+                if user.id == prop.proposal_host.id or user.id == prop.proposal_guest.id:
+                    return {
+                        'status_code': 200,
+                        'proposals': marshal(prop, proposal_fields)
+                    }
+                else:
+                    return {'status_code': 401, 'message': 'This proposal is not your concern.'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -554,7 +548,7 @@ class ProposalApi(Resource):
 
                 p = Proposal.objects.get(id=prop_id)
 
-                if p.proposal_host == user.id:
+                if p.proposal_host.id == user.id:
                     p.proposal_host = ObjectId(args['proposal_host'])
                     p.proposal_guest = ObjectId(args['proposal_guest'])
                     p.filled = args['filled']
@@ -579,7 +573,7 @@ class ProposalApi(Resource):
             user = User.confirm_auth_token(token)
             if user:
                 p = Proposal.objects.get(id=prop_id)
-                if p.proposal_host == user.id:
+                if p.proposal_host.id == user.id:
                     p.delete()
 
                     return {
@@ -598,14 +592,23 @@ api.add_resource(ProposalListApi, '/api/v1/proposals', endpoint='proposals')
 api.add_resource(ProposalApi, '/api/v1/proposals/<string:prop_id>', endpoint='proposal')
 
 
+# MEAL DATES
 class MealDateListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("proposal", type=object,
-                                 help='Proposal required',
+
+        self.parser.add_argument("user_1", type=str,
+                                 help='User 1 required',
                                  required=True)
 
+        self.parser.add_argument("user_2", type=str,
+                                 help='User 2 required',
+                                 required=True)
+
+        self.parser.add_argument("proposal", type=str,
+                                 help='Proposal required',
+                                 required=True)
 
         self.parser.add_argument("restaurant_name",
                                  type=str,
@@ -648,6 +651,8 @@ class MealDateListApi(Resource):
             user = User.confirm_auth_token(token)
             if user:
                 args = self.parser.parse_args()
+                user_1 = args['user_1']
+                user_2 = args['user_2']
                 proposal = args['proposal']
                 restaurant_name = args['restaurant_name']
                 restaurant_address = args['restaurant_address']
@@ -655,8 +660,10 @@ class MealDateListApi(Resource):
                 meal_time = args['meal_time']
 
                 if decision:
-
-                    md = MealDate(proposal=proposal,
+                    # use location_string with foursquare to find restaurants
+                    # store the GPS coordinates and restaurant info
+                    # use gps coordinates with G-maps to show map
+                    md = MealDate(user_1=user_1, user_2=user_2, proposal=proposal,
                                   restaurant_name=restaurant_name,
                                   restaurant_address=restaurant_address,
                                   #restaurant_picture=restaurant_picture,

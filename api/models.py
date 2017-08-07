@@ -52,8 +52,6 @@ class User(Document):
 class Request(Document):
     meal_type = StringField(max_length=64, required=True)
     location_string = StringField(max_length=64)
-    longitude = FloatField(min_value=0.00)
-    latitude = FloatField(min_value=0.00)
     meal_time = StringField(max_length=64)
     created = DateTimeField(default=datetime.now())
     modified = DateTimeField(default=datetime.now())
@@ -69,7 +67,11 @@ class Proposal(Document):
 
 
 class MealDate(Document):
+    user_1 = ReferenceField(User)
+    user_2 = ReferenceField(User)
     proposal = ReferenceField(Proposal)
+    longitude = FloatField(min_value=0.00)
+    latitude = FloatField(min_value=0.00)
     restaurant_name = StringField(max_length=64)
     restaurant_address = StringField(max_length=64)
     #restaurant_picture = ImageField()
