@@ -1,8 +1,10 @@
 import json
 
+import foursquare
 from bson import ObjectId
 from flask import session, request, jsonify
 from flask_restful import Api, Resource, reqparse, fields, marshal
+from MeetNEat.config import CLIENT_ID, CLIENT_SECRET
 from mongoengine import Q
 
 from api import api_blueprint
@@ -43,14 +45,12 @@ md_fields = {
     'id': fields.String,
     'user_1': fields.Nested(user_fields),
     'user_2': fields.Nested(user_fields),
-    'proposal': fields.Nested(proposal_fields),
     'longitude': fields.Float,
     'latitude': fields.Float,
     'restaurant_name': fields.String,
     'restaurant_address': fields.String,
     'restaurant_picture': fields.Raw,
-    'meal_time': fields.DateTime
-
+    'meal_time': fields.String
 }
 
 
@@ -234,12 +234,6 @@ class RequestListApi(Resource):
                                  type=str,
                                  help='Location is required',
                                  required=True)
-
-        self.parser.add_argument("longitude",
-                                 type=float)
-
-        self.parser.add_argument("latitude",
-                                 type=float)
 
         self.parser.add_argument("meal_time",
                                  type=str,
@@ -598,31 +592,8 @@ class MealDateListApi(Resource):
     def __init__(self):
         self.parser = reqparse.RequestParser()
 
-        self.parser.add_argument("user_1", type=str,
-                                 help='User 1 required',
-                                 required=True)
-
-        self.parser.add_argument("user_2", type=str,
-                                 help='User 2 required',
-                                 required=True)
-
         self.parser.add_argument("proposal", type=str,
                                  help='Proposal required',
-                                 required=True)
-
-        self.parser.add_argument("restaurant_name",
-                                 type=str,
-                                 required=True)
-
-        self.parser.add_argument("restaurant_address",
-                                 type=str,
-                                 required=True)
-
-        self.parser.add_argument("restaurant_picture",
-                                 type=str)
-
-        self.parser.add_argument("meal_time",
-                                 type=str,
                                  required=True)
 
         super(MealDateListApi, self).__init__()
@@ -651,23 +622,25 @@ class MealDateListApi(Resource):
             user = User.confirm_auth_token(token)
             if user:
                 args = self.parser.parse_args()
-                user_1 = args['user_1']
-                user_2 = args['user_2']
                 proposal = args['proposal']
-                restaurant_name = args['restaurant_name']
-                restaurant_address = args['restaurant_address']
-                #restaurant_picture = args['restaurant_picture']
-                meal_time = args['meal_time']
 
                 if decision:
+                    p = Proposal.objects.get(id=proposal)
+                    req = p.request
                     # use location_string with foursquare to find restaurants
+                    client = foursquare.Foursquare(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+                    response = client.venues.search(params={'near': req.location_string, 'query': req.meal_type,
+                                                            'intent': 'checkin', 'limit': 5})
+
+                    restaurants = response['venues'][0]
+
                     # store the GPS coordinates and restaurant info
                     # use gps coordinates with G-maps to show map
-                    md = MealDate(user_1=user_1, user_2=user_2, proposal=proposal,
-                                  restaurant_name=restaurant_name,
-                                  restaurant_address=restaurant_address,
-                                  #restaurant_picture=restaurant_picture,
-                                  meal_time=meal_time)
+                    md = MealDate(user_1=p.proposal_host, user_2=p.proposal_guest, proposal=proposal,
+                                  restaurant_name=restaurants['name'],
+                                  restaurant_address=', '.join(restaurants['location']['formattedAddress']),
+                                  latitude=restaurants['location']['lat'], longitude=restaurants['location']['lng'],
+                                  meal_time=req.meal_time)
                     md.save()
 
                     return {

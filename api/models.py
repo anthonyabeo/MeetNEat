@@ -2,8 +2,8 @@ from datetime import datetime
 
 from flask import current_app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
-from mongoengine import connect, Document, StringField, FloatField, EmailField, DateTimeField, BooleanField, \
-                        ReferenceField, ImageField
+from mongoengine import connect, Document, StringField, EmailField, DateTimeField, BooleanField, \
+    ReferenceField, DecimalField
 from werkzeug.security import check_password_hash, generate_password_hash
 
 connect('meetneat', host='localhost', port=27017)
@@ -70,9 +70,8 @@ class MealDate(Document):
     user_1 = ReferenceField(User)
     user_2 = ReferenceField(User)
     proposal = ReferenceField(Proposal)
-    longitude = FloatField(min_value=0.00)
-    latitude = FloatField(min_value=0.00)
-    restaurant_name = StringField(max_length=64)
-    restaurant_address = StringField(max_length=64)
-    #restaurant_picture = ImageField()
-    meal_time = DateTimeField()
+    longitude = DecimalField(precision=15)
+    latitude = DecimalField(precision=15)
+    restaurant_name = StringField(max_length=200)
+    restaurant_address = StringField(max_length=200)
+    meal_time = StringField(max_length=64)
