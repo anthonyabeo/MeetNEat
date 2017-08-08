@@ -66,17 +66,9 @@ class UserListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("username", type=str,
-                                 help='Username is required',
-                                 required=True)
-
-        self.parser.add_argument("password",
-                                 type=str,
-                                 help='password is required',
-                                 required=True)
-
-        self.parser.add_argument("email",
-                                 type=str)
+        self.parser.add_argument("username", type=str, help='Username is required', required=True)
+        self.parser.add_argument("password", type=str, help='password is required', required=True)
+        self.parser.add_argument("email", type=str)
 
         super(UserListApi, self).__init__()
 
@@ -226,33 +218,13 @@ class RequestListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("meal_type", type=str,
-                                 help='Meal Type is required',
-                                 required=True)
-
-        self.parser.add_argument("location_string",
-                                 type=str,
-                                 help='Location is required',
-                                 required=True)
-
-        self.parser.add_argument("meal_time",
-                                 type=str,
-                                 help='Meal time is required',
-                                 required=True)
-
-        self.parser.add_argument("user",
-                                 type=str,
-                                 help='user ID is required',
-                                 required=True)
-
-        self.parser.add_argument("created",
-                                 type=object)
-
-        self.parser.add_argument("modified",
-                                 type=object)
-
-        self.parser.add_argument("filled",
-                                 type=bool)
+        self.parser.add_argument("meal_type", type=str, help='Meal Type is required', required=True)
+        self.parser.add_argument("location_string", type=str, help='Location is required', required=True)
+        self.parser.add_argument("meal_time", type=str, help='Meal time is required', required=True)
+        self.parser.add_argument("user", type=str, help='user ID is required', required=True)
+        self.parser.add_argument("created", type=object)
+        self.parser.add_argument("modified", type=object)
+        self.parser.add_argument("filled", type=bool)
 
         super(RequestListApi, self).__init__()
 
@@ -313,38 +285,15 @@ class RequestApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("meal_type", type=str,
-                                 help='Meal Type is required',
-                                 required=True)
-
-        self.parser.add_argument("location_string",
-                                 type=str,
-                                 help='Location is required',
-                                 required=True)
-
-        self.parser.add_argument("longitude",
-                                 type=float)
-
-        self.parser.add_argument("latitude",
-                                 type=float)
-
-        self.parser.add_argument("meal_time",
-                                 type=str,
-                                 help='Meal time is required',
-                                 required=True)
-
-        self.parser.add_argument("user",
-                                 type=str,
-                                 help='user ID is required')
-
-        self.parser.add_argument("created",
-                                 type=object)
-
-        self.parser.add_argument("modified",
-                                 type=object)
-
-        self.parser.add_argument("filled",
-                                 type=bool)
+        self.parser.add_argument("meal_type", type=str, help='Meal Type is required', required=True)
+        self.parser.add_argument("location_string", type=str, help='Location is required', required=True)
+        self.parser.add_argument("longitude", type=float)
+        self.parser.add_argument("latitude", type=float)
+        self.parser.add_argument("meal_time", type=str, help='Meal time is required', required=True)
+        self.parser.add_argument("user", type=str, help='user ID is required')
+        self.parser.add_argument("created", type=object)
+        self.parser.add_argument("modified", type=object)
+        self.parser.add_argument("filled", type=bool)
 
         super(RequestApi, self).__init__()
 
@@ -425,19 +374,9 @@ class ProposalListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-
-        self.parser.add_argument("proposal_guest",
-                                 type=str,
-                                 help='Request guest is required',
-                                 required=True)
-
-        self.parser.add_argument("request",
-                                 type=str,
-                                 required=True)
-
-        self.parser.add_argument("filled",
-                                 type=bool,
-                                 required=True)
+        self.parser.add_argument("proposal_guest", type=str, help='Request guest is required', required=True)
+        self.parser.add_argument("request", type=str, required=True)
+        self.parser.add_argument("filled", type=bool, required=True)
 
         super(ProposalListApi, self).__init__()
 
@@ -496,22 +435,10 @@ class ProposalApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("proposal_host", type=str,
-                                 help='Request host is required',
-                                 required=True)
-
-        self.parser.add_argument("proposal_guest",
-                                 type=str,
-                                 help='Request guest is required',
-                                 required=True)
-
-        self.parser.add_argument("request",
-                                 type=str,
-                                 required=True)
-
-        self.parser.add_argument("filled",
-                                 type=bool,
-                                 required=True)
+        self.parser.add_argument("proposal_host", type=str, help='Request host is required', required=True)
+        self.parser.add_argument("proposal_guest", type=str, help='Request guest is required', required=True)
+        self.parser.add_argument("request", type=str, required=True)
+        self.parser.add_argument("filled", type=bool, required=True)
 
         super(ProposalApi, self).__init__()
 
@@ -591,10 +518,7 @@ class MealDateListApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-
-        self.parser.add_argument("proposal", type=str,
-                                 help='Proposal required',
-                                 required=True)
+        self.parser.add_argument("proposal", type=str, help='Proposal required', required=True)
 
         super(MealDateListApi, self).__init__()
 
@@ -624,7 +548,7 @@ class MealDateListApi(Resource):
                 args = self.parser.parse_args()
                 proposal = args['proposal']
 
-                if decision:
+                if decision == 'true':
                     p = Proposal.objects.get(id=proposal)
                     req = p.request
                     # use location_string with foursquare to find restaurants
@@ -647,9 +571,11 @@ class MealDateListApi(Resource):
                         'status_code': 201,
                         'message': 'Meal date placed successfully'
                     }
-                else:
-                    Proposal.objects.get(id=proposal.id).delete()
+                elif decision == 'false':
+                    Proposal.objects.get(id=proposal).delete()
                     return {'status_code': 204, 'message': 'Date cancelled'}
+                elif decision == '':
+                    return {'status_code': 401, 'message': 'Missing parameter, DECISION'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -660,29 +586,12 @@ class MealDateApi(Resource):
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
-        self.parser.add_argument("user_1", type=str,
-                                 help='User 1 required',
-                                 required=True)
-
-        self.parser.add_argument("user_2",
-                                 type=str,
-                                 help='User 2 is required',
-                                 required=True)
-
-        self.parser.add_argument("restaurant_name",
-                                 type=str,
-                                 required=True)
-
-        self.parser.add_argument("restaurant_address",
-                                 type=str,
-                                 required=True)
-
-        self.parser.add_argument("restaurant_picture",
-                                 type=str)
-
-        self.parser.add_argument("meal_time",
-                                 type=str,
-                                 required=True)
+        self.parser.add_argument("user_1", type=str, help='User 1 required', required=True)
+        self.parser.add_argument("user_2", type=str, help='User 2 is required', required=True)
+        self.parser.add_argument("restaurant_name", type=str, required=True)
+        self.parser.add_argument("restaurant_address", type=str, required=True)
+        self.parser.add_argument("restaurant_picture", type=str)
+        self.parser.add_argument("meal_time", type=str, required=True)
 
         super(MealDateApi, self).__init__()
 
