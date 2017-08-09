@@ -13,7 +13,8 @@ class User(Document):
     username = StringField(required=True, max_lenght=64, unique=True)
     first_name = StringField(max_length=64)
     last_name = StringField(max_length=64)
-    email = EmailField(unique=True, null=True)
+    social_id = StringField(max_length=64)
+    email = EmailField(unique=False, null=True)
     about_me = StringField(max_length=1000)
     password_hash = StringField(max_length=100)
 

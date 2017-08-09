@@ -3,12 +3,14 @@ import json
 import foursquare
 from bson import ObjectId
 from flask import session, request, jsonify
+from flask_login import current_user
 from flask_restful import Api, Resource, reqparse, fields, marshal
-from MeetNEat.config import CLIENT_ID, CLIENT_SECRET
+from MeetNEat.config import FOURSQUARE_CREDENTIALS
 from mongoengine import Q
 
 from api import api_blueprint
 from api.models import User, Request, Proposal, MealDate
+from api.oauth import OAuthSignIn
 from api.utils import verify_credentials
 
 api = Api(api_blueprint)
@@ -54,11 +56,57 @@ md_fields = {
 }
 
 
+@api_blueprint.route('/api/v1/authorize/<provider>')
+def oauth_authorize(provider):
+    if 'username' in session:
+        return jsonify({'status_code': 304, 'message': 'Already logged in'})
+    oauth = OAuthSignIn.get_provider(provider)
+    return oauth.authorize()
+
+
+@api_blueprint.route('/api/v1/callback/<provider>')
+def oauth_callback(provider):
+    if 'username' in session:
+        return jsonify({'status_code': 304, 'message': 'Already logged in'})
+    oauth = OAuthSignIn.get_provider(provider)
+    social_id, username, email = oauth.callback()
+    if social_id is None:
+        return jsonify({'status_code': 401, 'message': 'Authentication failed'})
+    user = User.objects(social_id=social_id).first()
+    if not user:
+        user = User(social_id=social_id, username=username, email=email)
+        user.save()
+
+    session['id'] = str(user.id)
+    session['username'] = user.username
+    session['first_name'] = user.first_name
+    session['last_name'] = user.last_name
+    session['email'] = user.email
+    session['about_me'] = user.about_me
+    session['token'] = user.generate_confirmation_token().decode('ascii')
+
+    return jsonify({
+        'status_code': 200,
+        'message': 'Successfully logged in',
+        'user': {
+            'id': session['id'],
+            'username': session['username'],
+            'first_name': session['first_name'],
+            'last_name': session['last_name'],
+            'email': session['email'],
+            'about_me': session['about_me'],
+            'token': session['token']
+        }
+    })
+
+
 @api_blueprint.route('/api/v1/users/logout')
 def logout_user():
     if session['username']:
         session.clear()
-    return jsonify({'message': 'Successfully logged out', 'status_code': 200})
+        return jsonify({'message': 'Successfully logged out', 'status_code': 200})
+    else:
+        return jsonify({'message': 'Already logged out', 'status_code': 200})
 
 
 # USERS
@@ -120,13 +168,19 @@ class UserListApi(Resource):
                 session['about_me'] = user.about_me
                 session['token'] = user.generate_confirmation_token().decode('ascii')
 
-                response = {
+                return {
                     'status_code': 200,
-                    'id': session['id'],
-                    'message': "Login successful",
-                    'token': session['token']
+                    'message': 'Successfully logged in',
+                    'user': {
+                        'id': session['id'],
+                        'username': session['username'],
+                        'first_name': session['first_name'],
+                        'last_name': session['last_name'],
+                        'email': session['email'],
+                        'about_me': session['about_me'],
+                        'token': session['token']
+                    }
                 }
-                return response
             else:
                 return {'error': 'Invalid credentials!!!'}
 
@@ -166,21 +220,11 @@ class UserApi(Resource):
 
                     user.save()
 
-                    response = {
-                        'status_code': 200,
-                        'message': 'Profile updated successfully'
-                    }
-                    return response
+                    return {'status_code': 200, 'message': 'Profile updated successfully'}
             else:
-                return {
-                    'status_code': 404,
-                    'error': 'Invalid credentials!!!'
-                }
+                return {'status_code': 404, 'error': 'Invalid credentials!!!'}
         else:
-            return {
-                'status_code': 400,
-                'message': 'You need to login'
-            }
+            return {'status_code': 400, 'message': 'You need to login'}
 
     def delete(self, user_id):
 
@@ -193,20 +237,11 @@ class UserApi(Resource):
                 if str(user.id) == user_id:
                     user.delete()
 
-                    return {
-                        'status_code': 200,
-                        'message': 'user deleted successfully'
-                    }
+                    return {'status_code': 200, 'message': 'user deleted successfully'}
             else:
-                return {
-                    'status_code': 404,
-                    'error': 'Invalid credentials!!!'
-                }
+                return {'status_code': 404, 'error': 'Invalid credentials!!!'}
         else:
-            return {
-                'status_code': 400,
-                'message': 'You need to login'
-            }
+            return {'status_code': 400, 'message': 'You need to login'}
 
 
 api.add_resource(UserListApi, '/api/v1/users', endpoint='users')
@@ -302,7 +337,7 @@ class RequestApi(Resource):
         if token:
             user = User.confirm_auth_token(token)
             if user:
-                req = Request.objects.get(id=r_id)
+                req = Request.objects(id=r_id).first()
                 return {
                     'status_code': 200,
                     'requests': marshal(req, request_fields)
@@ -552,7 +587,8 @@ class MealDateListApi(Resource):
                     p = Proposal.objects.get(id=proposal)
                     req = p.request
                     # use location_string with foursquare to find restaurants
-                    client = foursquare.Foursquare(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+                    client = foursquare.Foursquare(client_id=FOURSQUARE_CREDENTIALS['CLIENT_ID'],
+                                                   client_secret=FOURSQUARE_CREDENTIALS['CLIENT_SECRET'])
                     response = client.venues.search(params={'near': req.location_string, 'query': req.meal_type,
                                                             'intent': 'checkin', 'limit': 5})
 
