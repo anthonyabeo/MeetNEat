@@ -3,7 +3,6 @@ import json
 import foursquare
 from bson import ObjectId
 from flask import session, request, jsonify
-from flask_login import current_user
 from flask_restful import Api, Resource, reqparse, fields, marshal
 from MeetNEat.config import FOURSQUARE_CREDENTIALS
 from mongoengine import Q
@@ -11,6 +10,7 @@ from mongoengine import Q
 from api import api_blueprint
 from api.models import User, Request, Proposal, MealDate
 from api.oauth import OAuthSignIn
+from api.rate_limit import get_view_rate_limit, ratelimit
 from api.utils import verify_credentials
 
 api = Api(api_blueprint)
@@ -56,9 +56,24 @@ md_fields = {
 }
 
 
-@api_blueprint.route('/api/v1/authorize/<provider>')
+@api_blueprint.after_request
+def inject_x_rate_headers(response):
+    limit = get_view_rate_limit()
+    if limit and limit.send_x_headers:
+        h = response.headers
+        h.add('X-RateLimit-Remaining', str(limit.remaining))
+        h.add('X-RateLimit-Limit', str(limit.limit))
+        h.add('X-RateLimit-Reset', str(limit.reset))
+    return response
+
+
+@api_blueprint.route('/api/v1/authorize/<provider>/login')
 def oauth_authorize(provider):
-    if 'username' in session:
+    if 'token' in session:
+        user = User.confirm_auth_token(session['token'])
+        if user is None:
+            session.clear()
+            return jsonify({'status_code': 304, 'message': 'Session expired. Kindly log in.'})
         return jsonify({'status_code': 304, 'message': 'Already logged in'})
     oauth = OAuthSignIn.get_provider(provider)
     return oauth.authorize()
@@ -66,7 +81,11 @@ def oauth_authorize(provider):
 
 @api_blueprint.route('/api/v1/callback/<provider>')
 def oauth_callback(provider):
-    if 'username' in session:
+    if 'token' in session:
+        user = User.confirm_auth_token(session['token'])
+        if user is None:
+            session.clear()
+            return jsonify({'status_code': 304, 'message': 'Session expired. Kindly log in.'})
         return jsonify({'status_code': 304, 'message': 'Already logged in'})
     oauth = OAuthSignIn.get_provider(provider)
     social_id, username, email = oauth.callback()
@@ -111,6 +130,7 @@ def logout_user():
 
 # USERS
 class UserListApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -121,9 +141,7 @@ class UserListApi(Resource):
         super(UserListApi, self).__init__()
 
     def get(self):
-
-        data = json.loads(request.get_data().decode('ascii'))
-        token = data['token']
+        token = request.args.get('token')
 
         if token:
             user = User.confirm_auth_token(token)
@@ -182,15 +200,15 @@ class UserListApi(Resource):
                     }
                 }
             else:
-                return {'error': 'Invalid credentials!!!'}
+                return {'error': 'Invalid credentials. You need to log in'}
 
 
 class UserApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def get(self, user_id):
 
-        data = json.loads(request.get_data().decode('ascii'))
-        token = data['token']
+        token = request.args.get('token')
 
         if token:
             user = User.confirm_auth_token(token)
@@ -204,8 +222,9 @@ class UserApi(Resource):
 
     def put(self, user_id):
 
+        token = request.args.get('token')
         data = json.loads(request.get_data().decode('ascii'))
-        token = data['token']
+
         new_user_info = data['new_user_info']
 
         if token:
@@ -228,8 +247,7 @@ class UserApi(Resource):
 
     def delete(self, user_id):
 
-        data = json.loads(request.get_data().decode('ascii'))
-        token = data['token']
+        token = request.args.get('token')
 
         if token:
             user = User.confirm_auth_token(token)
@@ -250,6 +268,7 @@ api.add_resource(UserApi, '/api/v1/users/<string:user_id>', endpoint='user')
 
 # REQUESTS
 class RequestListApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -317,6 +336,7 @@ class RequestListApi(Resource):
 
 
 class RequestApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -366,10 +386,7 @@ class RequestApi(Resource):
 
                 r.save()
 
-                return {
-                    'status_code': 200,
-                    'message': 'Request updated'
-                }
+                return {'status_code': 200, 'message': 'Request updated'}
             else:
                 return {'status_code': 401, 'message': 'Invalid credentials!!!'}
         else:
@@ -385,20 +402,11 @@ class RequestApi(Resource):
                     r = Request.objects.get(id=r_id)
                     r.delete()
 
-                    return {
-                        'status_code': 204,
-                        'message': 'Request deleted successfully'
-                    }
+                    return {'status_code': 204, 'message': 'Request deleted successfully'}
             else:
-                return {
-                    'status_code': 401,
-                    'error': 'Invalid credentials!!!'
-                }
+                return {'status_code': 401, 'error': 'Invalid credentials!!!'}
         else:
-            return {
-                'status_code': 401,
-                'message': 'You need to login'
-            }
+            return {'status_code': 401, 'message': 'You need to login'}
 
 api.add_resource(RequestListApi, '/api/v1/requests', endpoint='requests')
 api.add_resource(RequestApi, '/api/v1/requests/<string:r_id>', endpoint='request')
@@ -406,6 +414,7 @@ api.add_resource(RequestApi, '/api/v1/requests/<string:r_id>', endpoint='request
 
 # PROPOSALS
 class ProposalListApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -467,6 +476,7 @@ class ProposalListApi(Resource):
 
 
 class ProposalApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -550,6 +560,7 @@ api.add_resource(ProposalApi, '/api/v1/proposals/<string:prop_id>', endpoint='pr
 
 # MEAL DATES
 class MealDateListApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def __init__(self):
         self.parser = reqparse.RequestParser()
@@ -619,6 +630,7 @@ class MealDateListApi(Resource):
 
 
 class MealDateApi(Resource):
+    decorators = [ratelimit(limit=300, per=30 * 1)]
 
     def __init__(self):
         self.parser = reqparse.RequestParser()

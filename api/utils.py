@@ -9,4 +9,4 @@ def verify_credentials(username_or_token, password):
         user = User.objects(username=username_or_token).first()
         if not user or not user.verify_password(password):
             return False
-    return True
+    return True, user
