@@ -59,6 +59,9 @@ class Request(Document):
     filled = BooleanField(default=False)
     user = ReferenceField(User)
 
+    def __str__(self):
+        return '{} for {} at {}'.format(self.meal_type, self.meal_time, self.location_string)
+
 
 class Proposal(Document):
     proposal_host = ReferenceField(User)
