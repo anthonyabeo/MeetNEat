@@ -18,30 +18,50 @@ REST API backend for a social application for meeting people based on their food
 
 
 ### API Reference
-The MeetNEat API allows you to query data about meal requests, proposals and dates.
+> The MeetNEat API allows you to query data about meal requests, proposals and dates.
 
 #### BASE URL  
 All URLs reference here have the following base  
 `http://localhost:8080/api/v1`
 
 #### AUTHENTICATION
-All HTTP requests to the REST API are protected Basic HTTP authentication or using an API key. 
-This can be obtained by creating an account.  
-`More on this later`
+> All HTTP requests to the REST API are protected Basic HTTP authentication or using an API key. 
+  This can be obtained by creating an account.  
+ `More on this later`
 
 #### RESOURCES
 
 ##### Meal Requests
-Retrieve one or all `request` resources.
 
-METHOD `GET`  
-QUERY PARAMETERS `token`
+Query Parameters
 
-URL `/requests`  
-Retrieve all available meal requests.
+| Name        | Type           | Description  |     
+| ------------|:-------------:| :-------------|
+| token   | String (required) | A long string for validating HTTP requests. You are given one whenever you login|
 
-URL `/requests/<request_id>`  
-Retrieve the meal request corresponding to that id.
+
+Data Parameters
+
+| Name        | Type           | Description  |     
+| ------------|:-------------:| :-------------|
+| meal_type   | String (required) | Eg, `Pizza`, `Coffee` |     
+| meal_time    | String (required) | Eg. `Dinner`, `Lunch`, `Breakfast` |     
+| location_string | String (required) | Where the date will be. Eg. `Denver, Colorado`, `Queens, New York`|  
+| filled | Boolean. Defaults to False| Indicates whether or not the request has been occupied.|   
+
+
+| Description of the Resource  | HTTP Method   | Parameters  |     
+| ------------|:-------------:| :-------------|
+| Retrieve all requests. <br> URL `/requests`| `GET` | *Data* <br> `None` <br><br> *Query* <br> `token` |     
+| Retrieve one request. <br> URL `/requests/<request_id>`   | `GET` | *Data* <br> `None` <br><br> *Query* <br> `token` |     
+| Submit a `meal request`. <br> URL `/requests`| `POST`| *Data* <br> `meal_type` <br> `meal_time` <br>`location_string`  <br><br> *Query* <br> `token` |  
+| Edit a `meal request`. <br> URL `/requests/<request_id>` | `PUT` | *Data* <br>`meal_type` <br> `meal_time` <br> `location_string` <br>`filled`  <br><br> *Query* <br> `token` | 
+| Delete a `meal request`. <br> URL `/requests/<request_id>` | `DELETE` | *Data* <br>`None` <br><br> *Query* <br> `token` | 
+
+
+##### Meal Proposals
+
+##### Meal Dates
 
 ### Tutorials
 

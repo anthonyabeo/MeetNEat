@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 import foursquare
 from bson import ObjectId
@@ -342,12 +343,8 @@ class RequestApi(Resource):
         self.parser = reqparse.RequestParser()
         self.parser.add_argument("meal_type", type=str, help='Meal Type is required', required=True)
         self.parser.add_argument("location_string", type=str, help='Location is required', required=True)
-        self.parser.add_argument("longitude", type=float)
-        self.parser.add_argument("latitude", type=float)
         self.parser.add_argument("meal_time", type=str, help='Meal time is required', required=True)
-        self.parser.add_argument("user", type=str, help='user ID is required')
-        self.parser.add_argument("created", type=object)
-        self.parser.add_argument("modified", type=object)
+        self.parser.add_argument("user", type=str, help='user ID is required', required=True)
         self.parser.add_argument("filled", type=bool)
 
         super(RequestApi, self).__init__()
@@ -379,10 +376,7 @@ class RequestApi(Resource):
                 r.location_string = args['location_string']
                 r.meal_time = args['meal_time']
                 r.filled = args['filled']
-                r.created = args['created']
-                r.modified = args['modified']
-                r.longitude = args['longitude']
-                r.latitude = args['latitude']
+                r.modified = datetime.now()
 
                 r.save()
 
