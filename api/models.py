@@ -6,7 +6,9 @@ from mongoengine import connect, Document, StringField, EmailField, DateTimeFiel
     ReferenceField, DecimalField
 from werkzeug.security import check_password_hash, generate_password_hash
 
-connect('meetneat', host='localhost', port=27017)
+from meetneat.config import MONGODB_PORT, MONGODB_HOST, MONGODB_DB
+
+connect(MONGODB_DB, host=MONGODB_HOST, port=MONGODB_PORT)
 
 
 class User(Document):

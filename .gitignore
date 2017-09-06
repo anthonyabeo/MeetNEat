@@ -3,4 +3,4 @@
 *.pyc
 DB-dev.sqlite
 .cache
-
+.vagrant

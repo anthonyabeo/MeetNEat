@@ -5,7 +5,6 @@ import foursquare
 from bson import ObjectId
 from flask import session, request, jsonify
 from flask_restful import Api, Resource, reqparse, fields, marshal
-from MeetNEat.config import FOURSQUARE_CREDENTIALS
 from mongoengine import Q
 
 from api import api_blueprint
@@ -13,6 +12,7 @@ from api.models import User, Request, Proposal, MealDate
 from api.oauth import OAuthSignIn
 from api.rate_limit import get_view_rate_limit, ratelimit
 from api.utils import verify_credentials
+from meetneat.config import FOURSQUARE_CREDENTIALS
 
 api = Api(api_blueprint)
 
@@ -223,7 +223,7 @@ class UserApi(Resource):
 
     def put(self, user_id):
 
-        token = request.args.get('token')
+        token = request.args.get('token', '')
         data = json.loads(request.get_data().decode('ascii'))
 
         new_user_info = data['new_user_info']

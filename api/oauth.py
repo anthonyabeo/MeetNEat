@@ -1,10 +1,10 @@
 import json
 
+from flask import session
 from flask import url_for, redirect, request
 from rauth import OAuth1Service, OAuth2Service
-from flask import session
 
-from MeetNEat.config import OAUTH_CREDENTIALS
+from meetneat.config import OAUTH_CREDENTIALS
 
 
 class OAuthSignIn(object):

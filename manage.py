@@ -2,10 +2,10 @@ import os
 
 from flask_script import Manager, Shell
 
-from MeetNEat import create_app, db
+from meetneat import create_app, db
 from api.models import User, Request, Proposal, MealDate
 
-app = create_app(os.getenv('FLASK_CONFIG') or 'default')
+app = create_app()
 manager = Manager(app)
 
 
