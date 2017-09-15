@@ -22,7 +22,7 @@ REST API backend for a social application for meeting people based on their food
 
 #### BASE URL  
 All URLs reference here have the following base  
-`http://localhost:8080/api/v1`
+`http://35.202.118.81/api/v1`
 
 #### AUTHENTICATION
 > All HTTP requests to the REST API are protected Basic HTTP authentication or using an API key. 
@@ -45,7 +45,7 @@ Data Parameters
 | Name        | Type           | Description  |     
 | ------------|:-------------:| :-------------|
 | meal_type   | String (required) | Eg, `Pizza`, `Coffee` |     
-| meal_time    | String (required) | Eg. `Dinner`, `Lunch`, `Breakfast` |     
+| meal_time   | String (required) | Eg. `Dinner`, `Lunch`, `Breakfast` |     
 | location_string | String (required) | Where the date will be. Eg. `Denver, Colorado`, `Queens, New York`|  
 | filled | Boolean. Defaults to False| Indicates whether or not the request has been occupied.|   
 
@@ -57,6 +57,7 @@ Data Parameters
 | Submit a `meal request`. <br> URL `/requests`| `POST`| *Data* <br> `meal_type` <br> `meal_time` <br>`location_string`  <br><br> *Query* <br> `token` |  
 | Edit a `meal request`. <br> URL `/requests/<request_id>` | `PUT` | *Data* <br>`meal_type` <br> `meal_time` <br> `location_string` <br>`filled`  <br><br> *Query* <br> `token` | 
 | Delete a `meal request`. <br> URL `/requests/<request_id>` | `DELETE` | *Data* <br>`None` <br><br> *Query* <br> `token` | 
+
 
 
 ##### Meal Proposals
