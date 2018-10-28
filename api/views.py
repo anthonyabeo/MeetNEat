@@ -402,6 +402,7 @@ class RequestApi(Resource):
         else:
             return {'status_code': 401, 'message': 'You need to login'}
 
+
 api.add_resource(RequestListApi, '/api/v1/requests', endpoint='requests')
 api.add_resource(RequestApi, '/api/v1/requests/<string:r_id>', endpoint='request')
 
@@ -700,6 +701,7 @@ class MealDateApi(Resource):
                 return {'status_code': 401, 'error': 'Invalid credentials!!!'}
         else:
             return {'status_code': 401, 'message': 'You need to login'}
+
 
 api.add_resource(MealDateListApi, '/api/v1/mealdate', endpoint='mealdates')
 api.add_resource(MealDateApi, '/api/v1/mealdate/<string:date_id>', endpoint='mealdate')
