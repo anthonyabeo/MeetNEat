@@ -4,7 +4,7 @@ import unittest
 
 from mongoengine import connect
 
-from MeetNEat import create_app
+from meetneat import create_app
 
 
 class ApiTestCase(unittest.TestCase):
@@ -198,9 +198,8 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 201)
         rv = self.client().put(
             '/api/v1/requests/1',
-            data={
-                "meal_type": "Dessert:-)"
-            })
+            data={"meal_type": "Dessert:-)"}
+        )
         self.assertEqual(rv.status_code, 200)
         results = self.client().get('/api/v1/requests/1')
         self.assertIn('Dessert', str(results.data))

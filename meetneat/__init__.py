@@ -12,8 +12,6 @@ login_manager.login_view = 'admin.sign_in'
 def create_app():
     app = Flask(__name__)
     app.config.from_object('meetneat.config')
-    # config[config_name].init_app(app)
-    # import pdb; pdb.set_trace()
 
     db.init_app(app)
     login_manager.init_app(app)
